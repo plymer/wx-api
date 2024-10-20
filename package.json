@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "tsx watch ./src/index.ts",
     "copy": "copy package*.json dist\\package*.json",
-    "build": "tsc && npm run copy",
-    "serve": "node index.js"
+    "build": "tsc && npm run copy"
   },
-  "author": "",
+  "author": "Ryan Pimiskern",
   "license": "ISC",
-  "description": "",
+  "description": "A data-serving API for prairiewx.ca",
   "dependencies": {
+    "@types/suncalc": "^1.9.2",
     "axios": "^1.7.7",
     "express": "^4.21.1",
     "suncalc": "^1.9.0"
