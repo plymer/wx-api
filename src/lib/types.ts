@@ -1,0 +1,104 @@
+export type StationObject = {
+  icaoId: string;
+  iataId: string;
+  faaId: string;
+  wmoId: number;
+  lat: number;
+  lon: number;
+  elev: number;
+  site: string;
+  state: string;
+  country: string;
+  priority: number;
+};
+
+export type MetarObject = {
+  metar_id: number;
+  icaoId: string;
+  receiptTime: string;
+  obsTime: number;
+  reportTime: string;
+  temp: number | null;
+  dewp: number | null;
+  wdir: number | null;
+  wspd: number | null;
+  wgst: number | null;
+  visib: number | null;
+  altim: number | null;
+  slp: number | null;
+  qcField: number | null;
+  wxString: string | null;
+  presTend: string | null;
+  maxT: number | null;
+  minT: number | null;
+  maxT24: number | null;
+  minT24: number | null;
+  precip: number | null;
+  pcp3hr: number | null;
+  pcp6hr: number | null;
+  pcp24hr: number | null;
+  snow: number | null;
+  vertVis: string | null;
+  metarType: "METAR" | "SPECI";
+  rawOb: string;
+  mostRecent: number;
+  lat: number;
+  lon: number;
+  elev: number;
+  prior: number;
+  name: string;
+  clouds: { cover: string; base: number }[] | null;
+};
+
+export type TafObject = {
+  tafId: number | null;
+  icaoId: string;
+  dbPopTime: string;
+  bulletinTime: string;
+  issueTime: string;
+  validTimeFrom: number | null;
+  validTimeTo: number | null;
+  rawTAF: string;
+  mostRecent: number | null;
+  remarks: string;
+  lat: number | null;
+  lon: number | null;
+  elev: number | null;
+  prior: number | null;
+  name: string;
+  fcsts: {
+    timeGroup: number | null;
+    timeFrom: number | null;
+    timeTo: number | null;
+    timeBec: number | null;
+    fcstChange: string | null;
+    probability: string | null;
+    wdir: "VRB" | number | null;
+    wspd: number | null;
+    wgst: number | null;
+    wshearHgt: number | null;
+    wshearDir: number | null;
+    wshearSpd: number | null;
+    visib: "6+" | number | null;
+    altim: number | null;
+    vertVis: null;
+    wxString: null;
+    notDecoded: null;
+    clouds: {
+      cover: string | null;
+      base: number | null;
+      type: string | null;
+    }[];
+    icgTurb: {
+      var: string | null;
+      intensity: number | null;
+      minAlt: number | null;
+      maxAlt: number | null;
+    }[];
+    temp: {
+      validTime: number | null;
+      sfcTemp: number | null;
+      maxOrMin: "MAX" | "MIN" | null;
+    }[];
+  }[];
+};
