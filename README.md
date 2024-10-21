@@ -9,17 +9,21 @@ of hours
 
 Params:
 
-- `siteID`: 4-letter ICAO identifier for the site
-- `numHrs`: integer number of hours of requested METARs
+- `site`: 4-letter ICAO identifier for the site
+- `hrs`: integer number of hours of requested METARs
+
+---
 
 `/taf` returns a JSON string containing the TAF for the selected site
 
 Params:
 
-- `siteID`: 4-letter ICAO identifier for the site
+- `site`: 4-letter ICAO identifier for the site
+
+---
 
 `/sitedata` returns a JSON string containing the metadata for the selected site
 
 Params:
 
-- `siteID`: 4-letter ICAO identifier for the site
+- `site`: 4-letter ICAO identifier for the site

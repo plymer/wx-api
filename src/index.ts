@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { metars, taf, siteData } from "./endpoints/aviation";
+import { metars, taf, siteData, hubs } from "./endpoints/aviation";
 
 // initialize the server
 const app = express();
@@ -16,6 +16,7 @@ app.get("/", (req: Request, res: Response) => {
 app.get("/metars", metars);
 app.get("/sitedata", siteData);
 app.get("/taf", taf);
+app.get("/hubs", hubs);
 
 // start the server
 app.listen(port, () => {

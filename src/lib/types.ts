@@ -102,3 +102,67 @@ export type TafObject = {
     }[];
   }[];
 };
+
+export type HubDiscussion = {
+  intLastChecked: number;
+  CYVR: {
+    strtext: string;
+    strheaders: string;
+    strdiscussion: string;
+    stroutlook: string;
+    strforecaster: string;
+    stroffice: string;
+    str3hrconfidence: string;
+    int3hrconfidencecode: number;
+    str6hrconfidence: string;
+    int6hrconfidencecode: number;
+    strvariability: string;
+    intvariabilitycode: number;
+    dtLastModified: number;
+  };
+  CYYC: {
+    strtext: string;
+    strheaders: string;
+    strdiscussion: string;
+    stroutlook: string;
+    strforecaster: string;
+    stroffice: string;
+    str3hrconfidence: string;
+    int3hrconfidencecode: number;
+    str6hrconfidence: string;
+    int6hrconfidencecode: number;
+    strvariability: string;
+    intvariabilitycode: number;
+    dtLastModified: number;
+  };
+  CYYZ: {
+    strtext: string;
+    strheaders: string;
+    strdiscussion: string;
+    stroutlook: string;
+    strforecaster: string;
+    stroffice: string;
+    str3hrconfidence: string;
+    int3hrconfidencecode: number;
+    str6hrconfidence: string;
+    int6hrconfidencecode: number;
+    strvariability: string;
+    intvariabilitycode: number;
+    dtLastModified: number;
+  };
+  CYUL: {
+    strtext: string;
+    strheaders: string;
+    strdiscussion: string;
+    stroutlook: string;
+    strforecaster: string;
+    stroffice: string;
+    str3hrconfidence: string;
+    int3hrconfidencecode: number;
+    str6hrconfidence: string;
+    int6hrconfidencecode: number;
+    strvariability: string;
+    intvariabilitycode: number;
+    dtLastModified: number;
+  };
+};

@@ -1,14 +1,19 @@
 import axios from "axios";
 import suncalc, { GetTimesResult } from "suncalc";
 import { Request, Response } from "express";
-import { MetarObject, StationObject, TafObject } from "../lib/types";
+import {
+  HubDiscussion,
+  MetarObject,
+  StationObject,
+  TafObject,
+} from "../lib/types";
 import { FEET_PER_METRE, leadZero } from "../lib/utils";
 
 export const metars = async (req: Request, res: Response) => {
   try {
-    const { siteID, numHrs } = req.query;
+    const { site, hrs } = req.query;
 
-    const url = `http://aviationweather.gov/api/data/metar?ids=${siteID}&hours=${numHrs}&format=json`;
+    const url = `http://aviationweather.gov/api/data/metar?ids=${site}&hours=${hrs}&format=json`;
 
     console.log("requesting metars from:", url);
 
@@ -27,9 +32,9 @@ export const metars = async (req: Request, res: Response) => {
 
 export const siteData = async (req: Request, res: Response) => {
   try {
-    const { siteID } = req.query;
+    const { site } = req.query;
 
-    const url = `http://aviationweather.gov/api/data/stationinfo?ids=${siteID}&format=json`;
+    const url = `http://aviationweather.gov/api/data/stationinfo?ids=${site}&format=json`;
 
     console.log("requesting station info from:", url);
 
@@ -78,9 +83,9 @@ export const siteData = async (req: Request, res: Response) => {
 
 export const taf = async (req: Request, res: Response) => {
   try {
-    const { siteID } = req.query;
+    const { site } = req.query;
 
-    const url = `http://aviationweather.gov/api/data/taf?ids=${siteID}&format=json`;
+    const url = `http://aviationweather.gov/api/data/taf?ids=${site}&format=json`;
 
     console.log("requesting taf from:", url);
 
@@ -88,9 +93,69 @@ export const taf = async (req: Request, res: Response) => {
       .get(url)
       .then((taf) => taf.data[0]);
 
-    // we can do some regex on this tafObject.rawTAF
+    const rawTAF = tafObject.rawTAF.replaceAll(
+      /(FM|TEMPO|BECMG|PROB|RMK)/g,
+      "\n$1"
+    );
 
-    res.status(200).json({ taf: tafObject.rawTAF });
+    const tafMain = rawTAF.match(
+      /((TAF\s)?(AMD\s)?(\w{4}\s\d{6}Z\s\d{4}\/\d{4}\s)(\d{5}|VRB\d{2})(G\d{2})?(KT.+))/g
+    ) as string[];
+
+    const partPeriods = [
+      ...rawTAF.matchAll(/(TEMPO.+|PROB30.+|PROB40.+|BECMG.+|FM\d{6}.+)/g),
+    ].map((pp) => pp[0].trim());
+
+    res.status(200).json({
+      main: tafMain[0].trim(),
+      partPeriods: partPeriods,
+      rmk: tafObject.remarks,
+    });
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(400);
+  }
+};
+
+export const hubs = async (req: Request, res: Response) => {
+  try {
+    const { site } = req.query;
+
+    const url =
+      "https://metaviation.ec.gc.ca/hubwx/scripts/getForecasterNotes.php";
+
+    const hubs: HubDiscussion = await axios.get(url).then((tp) => tp.data);
+
+    switch (site) {
+      case "cyyz":
+        res.status(200).json({
+          siteName: "Toronto Pearson Intl Airport",
+          text: hubs.CYYZ.strtext,
+        });
+        break;
+      case "cyyc":
+        res
+          .status(200)
+          .json({ siteName: "Calgary Intl Airport", text: hubs.CYYC.strtext });
+        break;
+      case "cyvr":
+        res.status(200).json({
+          siteName: "Vancouver Intl Airport",
+          text: hubs.CYVR.strtext,
+        });
+        break;
+      case "cyul":
+        res.status(200).json({
+          siteName: "Montreal Trudeau Airport",
+          text: hubs.CYUL.strtext,
+        });
+        break;
+      default:
+        res.status(200).json({
+          siteName: `${site}`,
+          text: `No hub discussion available for ${site}`.toUpperCase(),
+        });
+    }
   } catch (error) {
     console.log(error);
     res.sendStatus(400);
