@@ -1,0 +1,27 @@
+{
+  "aviation": [
+    {
+      "endpoint": "/metars",
+      "params": [
+        { "site": "4-letter ICAO indentifier" },
+        { "hrs": "number of hours of data to request" }
+      ]
+    },
+    {
+      "endpoint": "/sitedata",
+      "params": [{ "site": "4-letter ICAO indentifier" }]
+    },
+    {
+      "endpoint": "/taf",
+      "params": [{ "site": "4-letter ICAO indentifier" }]
+    },
+    {
+      "endpoint": "/hubs",
+      "params": [
+        {
+          "site": "4-letter ICAO indentifier -only returns data for CYYZ, CYVR, CYUL, or CYYC"
+        }
+      ]
+    }
+  ]
+}
