@@ -27,3 +27,12 @@ Params:
 Params:
 
 - `site`: 4-letter ICAO identifier for the site
+
+---
+
+`/hubs` returns a JSON string containing the forecast discussion for the
+selected hub
+
+Params:
+
+- `site`: 4-letter ICAO identifier for the site
