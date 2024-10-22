@@ -6,7 +6,7 @@ import {
   MetarObject,
   StationObject,
   TafObject,
-} from "../lib/types";
+} from "../lib/aviation-types";
 import { FEET_PER_METRE, leadZero } from "../lib/utils";
 
 export const metars = async (req: Request, res: Response) => {
