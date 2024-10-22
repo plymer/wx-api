@@ -166,3 +166,54 @@ export type HubDiscussion = {
     dtLastModified: number;
   };
 };
+
+export type NavCanResponse = {
+  meta: {
+    now: string;
+    count: {
+      image?: number;
+      notam?: number;
+    };
+    messages: string[];
+  };
+  data: {
+    type: string;
+    pk: string;
+    location: string;
+    startValidity: string | null;
+    endValidity: string | null;
+    text: NavCanImageList | NavCanNOTAM;
+    hasError: boolean;
+    position: {
+      pointReference: string;
+      radialDistance: number;
+    };
+  }[];
+};
+
+export type NavCanImageList = {
+  product: string;
+  sub_product: string;
+  geography: string;
+  sub_geography: string;
+  frame_lists: {
+    id: number;
+    sv: string | null;
+    ev: string | null;
+    frames: {
+      id: number;
+      sv: string | null;
+      ev: string | null;
+      images: {
+        id: number;
+        created: string;
+      }[];
+    }[];
+  }[];
+};
+
+export type NavCanNOTAM = {
+  raw: string;
+  english: string | null;
+  french: string | null;
+};
