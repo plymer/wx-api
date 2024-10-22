@@ -146,7 +146,7 @@ export const hubs = async (req: Request, res: Response) => {
   }
 };
 
-export const gfas = async (req: Request, res: Response) => {
+export const gfa = async (req: Request, res: Response) => {
   try {
     const url =
       "https://plan.navcanada.ca/weather/api/alpha/?site=CYEG&site=CYVR&site=CYZF&site=CYFB&site=CYYZ&site=CYHZ&site=CYRB&image=GFA/CLDWX&image=GFA/TURBC";
@@ -157,41 +157,98 @@ export const gfas = async (req: Request, res: Response) => {
 
     const rawList = ncAPIData.data.map((region) => JSON.parse(region.text) as NavCanImageList);
 
-    const imageList = rawList.map((gfa) =>
-      gfa.frame_lists[2].frames.map(
-        (frame) => "https://plan.navcanada.ca/weather/images/" + frame.images[frame.images.length - 1].id + ".image"
-      )
-    );
-
-    // we may need to use a forEach here since that feels like building the output will be easier
-    // this is almost what we want
-    const output = rawList.map((gfa) => {
-      console.log(gfa);
-      return {
-        [gfa.geography]: {
-          [gfa.sub_product]: gfa.frame_lists[2].frames.map(
+    // i am too lazy to define this type-shape so we will ts-ignore the type assigment error below because this is a valid piece of code
+    let results = {};
+    rawList.forEach((gfa) => {
+      if (Object.hasOwn(results, gfa.geography.toLowerCase())) {
+        // the gfa is already in our results, but we need to add it's CLDWX or TURBC data to the results
+        //@ts-ignore
+        Object.assign(results[gfa.geography.toLowerCase()], {
+          [gfa.sub_product.toLowerCase()]: gfa.frame_lists[2].frames.map(
             (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
           ),
-        },
-      };
+        });
+      } else {
+        Object.assign(results, {
+          [gfa.geography.toLowerCase()]: {
+            [gfa.sub_product.toLowerCase()]: gfa.frame_lists[2].frames.map(
+              (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+            ),
+          },
+        });
+      }
     });
 
-    const outputLikeThis = {
-      GFACN31: {
-        CLDWX: [
-          "https://plan.navcanada.ca/weather/images/50550243.image",
-          "https://plan.navcanada.ca/weather/images/50550265.image",
-          "https://plan.navcanada.ca/weather/images/50550271.image",
-        ],
-        TURBC: [
-          "https://plan.navcanada.ca/weather/images/50550254.image",
-          "https://plan.navcanada.ca/weather/images/50550267.image",
-          "https://plan.navcanada.ca/weather/images/50550283.image",
-        ],
-      },
-    };
+    res.status(200).json(results);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(400);
+  }
+};
 
-    res.status(200).json(output);
+export const sigwx = async (req: Request, res: Response) => {
+  try {
+    const url = "https://plan.navcanada.ca/weather/api/alpha/?site=CYHZ&image=SIG_WX//MID_LEVEL/*&image=TURBULENCE";
+
+    console.log("requesting sigwx charts from:", url);
+
+    const ncAPIData: NavCanResponse = await axios.get(url).then((gfas) => gfas.data);
+
+    const rawList = ncAPIData.data.map((region) => JSON.parse(region.text) as NavCanImageList);
+
+    // i am too lazy to define this type-shape so we will ts-ignore the type assigment error below because this is a valid piece of code
+    let results = {};
+    rawList.forEach((p) => {
+      const product = p.product.toLowerCase();
+
+      if (Object.hasOwn(results, product)) {
+        // the product is already in our results, but we need to add the other type of chart to the results
+        //@ts-ignore
+        Object.assign(results[product], {
+          [product === "turbulence" ? p.geography.toLowerCase() : p.sub_geography.toLowerCase()]:
+            p.frame_lists[0].frames.map(
+              (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+            ),
+        });
+      } else {
+        Object.assign(results, {
+          [product]: {
+            [product === "turbulence" ? p.geography.toLowerCase() : p.sub_geography.toLowerCase()]:
+              p.frame_lists[0].frames.map(
+                (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+              ),
+          },
+        });
+      }
+    });
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(400);
+  }
+};
+
+export const lgf = async (req: Request, res: Response) => {
+  try {
+    const url = "https://plan.navcanada.ca/weather/api/alpha/?site=CYPR&site=CYZT&image=LGF";
+
+    console.log("requesting lgfs from:", url);
+
+    const ncAPIData: NavCanResponse = await axios.get(url).then((lgfs) => lgfs.data);
+
+    const rawList = ncAPIData.data.map((region) => JSON.parse(region.text) as NavCanImageList);
+
+    let results = {};
+    rawList.forEach((lgf) => {
+      Object.assign(results, {
+        [lgf.geography.toLowerCase()]: lgf.frame_lists[lgf.frame_lists.length - 1].frames.map(
+          (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+        ),
+      });
+    });
+
+    res.status(200).json(results);
   } catch (error) {
     console.log(error);
     res.sendStatus(400);

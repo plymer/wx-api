@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { metars, taf, siteData, hubs, gfas } from "./endpoints/aviation";
+import { metars, taf, siteData, hubs, gfa, sigwx, lgf } from "./endpoints/aviation";
 import endpoints from "./endpoints.json";
 
 // initialize the server
@@ -15,11 +15,13 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // aviation endpoints
-app.get("/metars", metars);
-app.get("/sitedata", siteData);
-app.get("/taf", taf);
-app.get("/hubs", hubs);
-app.get("/gfas", gfas);
+app.get("/alpha/metars", metars);
+app.get("/alpha/sitedata", siteData);
+app.get("/alpha/taf", taf);
+app.get("/alpha/hubs", hubs);
+app.get("/charts/gfa", gfa);
+app.get("/charts/sigwx", sigwx);
+app.get("/charts/lgf", lgf);
 
 // public endpoints
 
