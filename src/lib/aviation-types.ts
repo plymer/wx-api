@@ -182,7 +182,7 @@ export type NavCanResponse = {
     location: string;
     startValidity: string | null;
     endValidity: string | null;
-    text: NavCanImageList | NavCanNOTAM;
+    text: string;
     hasError: boolean;
     position: {
       pointReference: string;

@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { metars, taf, siteData, hubs } from "./endpoints/aviation";
+import { metars, taf, siteData, hubs, gfas } from "./endpoints/aviation";
 import endpoints from "./endpoints.json";
 
 // initialize the server
@@ -19,6 +19,7 @@ app.get("/metars", metars);
 app.get("/sitedata", siteData);
 app.get("/taf", taf);
 app.get("/hubs", hubs);
+app.get("/gfas", gfas);
 
 // public endpoints
 

@@ -4,7 +4,14 @@ import { Request, Response } from "express";
 import { FEET_PER_METRE, leadZero } from "../lib/utils";
 
 // type definitions for response data
-import { HubDiscussion, MetarObject, StationObject, TafObject } from "../lib/aviation-types";
+import {
+  HubDiscussion,
+  MetarObject,
+  NavCanImageList,
+  NavCanResponse,
+  StationObject,
+  TafObject,
+} from "../lib/aviation-types";
 
 export const metars = async (req: Request, res: Response) => {
   try {
@@ -133,6 +140,58 @@ export const hubs = async (req: Request, res: Response) => {
           text: `No hub discussion available for ${site}`.toUpperCase(),
         });
     }
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(400);
+  }
+};
+
+export const gfas = async (req: Request, res: Response) => {
+  try {
+    const url =
+      "https://plan.navcanada.ca/weather/api/alpha/?site=CYEG&site=CYVR&site=CYZF&site=CYFB&site=CYYZ&site=CYHZ&site=CYRB&image=GFA/CLDWX&image=GFA/TURBC";
+
+    console.log("requesting gfas from:", url);
+
+    const ncAPIData: NavCanResponse = await axios.get(url).then((gfas) => gfas.data);
+
+    const rawList = ncAPIData.data.map((region) => JSON.parse(region.text) as NavCanImageList);
+
+    const imageList = rawList.map((gfa) =>
+      gfa.frame_lists[2].frames.map(
+        (frame) => "https://plan.navcanada.ca/weather/images/" + frame.images[frame.images.length - 1].id + ".image"
+      )
+    );
+
+    // we may need to use a forEach here since that feels like building the output will be easier
+    // this is almost what we want
+    const output = rawList.map((gfa) => {
+      console.log(gfa);
+      return {
+        [gfa.geography]: {
+          [gfa.sub_product]: gfa.frame_lists[2].frames.map(
+            (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+          ),
+        },
+      };
+    });
+
+    const outputLikeThis = {
+      GFACN31: {
+        CLDWX: [
+          "https://plan.navcanada.ca/weather/images/50550243.image",
+          "https://plan.navcanada.ca/weather/images/50550265.image",
+          "https://plan.navcanada.ca/weather/images/50550271.image",
+        ],
+        TURBC: [
+          "https://plan.navcanada.ca/weather/images/50550254.image",
+          "https://plan.navcanada.ca/weather/images/50550267.image",
+          "https://plan.navcanada.ca/weather/images/50550283.image",
+        ],
+      },
+    };
+
+    res.status(200).json(output);
   } catch (error) {
     console.log(error);
     res.sendStatus(400);
