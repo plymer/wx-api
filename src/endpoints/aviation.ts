@@ -1,13 +1,10 @@
 import axios from "axios";
 import suncalc, { GetTimesResult } from "suncalc";
 import { Request, Response } from "express";
-import {
-  HubDiscussion,
-  MetarObject,
-  StationObject,
-  TafObject,
-} from "../lib/aviation-types";
 import { FEET_PER_METRE, leadZero } from "../lib/utils";
+
+// type definitions for response data
+import { HubDiscussion, MetarObject, StationObject, TafObject } from "../lib/aviation-types";
 
 export const metars = async (req: Request, res: Response) => {
   try {
@@ -17,9 +14,7 @@ export const metars = async (req: Request, res: Response) => {
 
     console.log("requesting metars from:", url);
 
-    const metarObjects: MetarObject[] = await axios
-      .get(url)
-      .then((metars) => metars.data);
+    const metarObjects: MetarObject[] = await axios.get(url).then((metars) => metars.data);
 
     const output = metarObjects.reverse().map((m: MetarObject) => m.rawOb);
 
@@ -38,26 +33,14 @@ export const siteData = async (req: Request, res: Response) => {
 
     console.log("requesting station info from:", url);
 
-    const siteData: StationObject = await axios
-      .get(url)
-      .then((site) => site.data[0]);
+    const siteData: StationObject = await axios.get(url).then((site) => site.data[0]);
 
-    const times: GetTimesResult = suncalc.getTimes(
-      new Date(),
-      siteData.lat,
-      siteData.lon
-    );
+    const times: GetTimesResult = suncalc.getTimes(new Date(), siteData.lat, siteData.lon);
 
     const riseString: string =
-      leadZero(times.sunrise.getUTCHours()) +
-      ":" +
-      leadZero(times.sunrise.getUTCMinutes()) +
-      "Z";
+      leadZero(times.sunrise.getUTCHours()) + ":" + leadZero(times.sunrise.getUTCMinutes()) + "Z";
     const setString: string =
-      leadZero(times.sunsetStart.getUTCHours()) +
-      ":" +
-      leadZero(times.sunsetStart.getUTCMinutes()) +
-      "Z";
+      leadZero(times.sunsetStart.getUTCHours()) + ":" + leadZero(times.sunsetStart.getUTCMinutes()) + "Z";
 
     res.status(200).json({
       icaoId: siteData.icaoId,
@@ -89,22 +72,17 @@ export const taf = async (req: Request, res: Response) => {
 
     console.log("requesting taf from:", url);
 
-    const tafObject: TafObject = await axios
-      .get(url)
-      .then((taf) => taf.data[0]);
+    const tafObject: TafObject = await axios.get(url).then((taf) => taf.data[0]);
 
-    const rawTAF = tafObject.rawTAF.replaceAll(
-      /(FM|TEMPO|BECMG|PROB|RMK)/g,
-      "\n$1"
-    );
+    const rawTAF = tafObject.rawTAF.replaceAll(/(FM|TEMPO|BECMG|PROB|RMK)/g, "\n$1");
 
     const tafMain = rawTAF.match(
       /((TAF\s)?(AMD\s)?(\w{4}\s\d{6}Z\s\d{4}\/\d{4}\s)(\d{5}|VRB\d{2})(G\d{2})?(KT.+))/g
     ) as string[];
 
-    const partPeriods = [
-      ...rawTAF.matchAll(/(TEMPO.+|PROB30.+|PROB40.+|BECMG.+|FM\d{6}.+)/g),
-    ].map((pp) => pp[0].trim());
+    const partPeriods = [...rawTAF.matchAll(/(TEMPO.+|PROB30.+|PROB40.+|BECMG.+|FM\d{6}.+)/g)].map((pp) =>
+      pp[0].trim()
+    );
 
     res.status(200).json({
       main: tafMain[0].trim(),
@@ -121,10 +99,11 @@ export const hubs = async (req: Request, res: Response) => {
   try {
     const { site } = req.query;
 
-    const url =
-      "https://metaviation.ec.gc.ca/hubwx/scripts/getForecasterNotes.php";
+    const url = "https://metaviation.ec.gc.ca/hubwx/scripts/getForecasterNotes.php";
 
-    const hubs: HubDiscussion = await axios.get(url).then((tp) => tp.data);
+    console.log("requesting hub discussions from:", url);
+
+    const hubs: HubDiscussion = await axios.get(url).then((hub) => hub.data);
 
     switch (site) {
       case "cyyz":
@@ -134,9 +113,7 @@ export const hubs = async (req: Request, res: Response) => {
         });
         break;
       case "cyyc":
-        res
-          .status(200)
-          .json({ siteName: "Calgary Intl Airport", text: hubs.CYYC.strtext });
+        res.status(200).json({ siteName: "Calgary Intl Airport", text: hubs.CYYC.strtext });
         break;
       case "cyvr":
         res.status(200).json({

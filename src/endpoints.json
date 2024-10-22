@@ -2,10 +2,7 @@
   "aviation": [
     {
       "endpoint": "/metars",
-      "params": [
-        { "site": "4-letter ICAO indentifier" },
-        { "hrs": "number of hours of data to request" }
-      ]
+      "params": [{ "site": "4-letter ICAO indentifier" }, { "hrs": "number of hours of data to request" }]
     },
     {
       "endpoint": "/sitedata",
