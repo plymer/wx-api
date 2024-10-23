@@ -1,24 +1,36 @@
 {
   "aviation": [
     {
-      "endpoint": "/metars",
+      "endpoint": "/alpha/metars",
       "params": [{ "site": "4-letter ICAO indentifier" }, { "hrs": "number of hours of data to request" }]
     },
     {
-      "endpoint": "/sitedata",
+      "endpoint": "/alpha/sitedata",
       "params": [{ "site": "4-letter ICAO indentifier" }]
     },
     {
-      "endpoint": "/taf",
+      "endpoint": "/alpha/taf",
       "params": [{ "site": "4-letter ICAO indentifier" }]
     },
     {
-      "endpoint": "/hubs",
+      "endpoint": "/alpha/hubs",
       "params": [
         {
           "site": "4-letter ICAO indentifier -only returns data for CYYZ, CYVR, CYUL, or CYYC"
         }
       ]
+    },
+    {
+      "endpoint": "/charts/gfa",
+      "params": []
+    },
+    {
+      "endpoint": "/charts/sigwx",
+      "params": []
+    },
+    {
+      "endpoint": "/charts/lgf",
+      "params": []
     }
   ]
 }
