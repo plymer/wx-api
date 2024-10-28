@@ -26,6 +26,9 @@ app.get("/charts/lgf", lgf);
 // public endpoints
 
 // general endpoints
+app.get("/gfy", (req: Request, res: Response) => {
+  res.send("Eh, go fuck yaself");
+});
 
 // start the server
 app.listen(port, () => {
