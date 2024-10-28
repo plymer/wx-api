@@ -17,18 +17,22 @@ export const metars = async (req: Request, res: Response) => {
   try {
     const { site, hrs } = req.query;
 
-    const url = `http://aviationweather.gov/api/data/metar?ids=${site}&hours=${hrs}&format=json`;
+    if (site && hrs) {
+      const url = `http://aviationweather.gov/api/data/metar?ids=${site}&hours=${hrs}&format=json`;
 
-    console.log("requesting metars from:", url);
+      console.log("requesting metars from:", url);
 
-    const metarObjects: MetarObject[] = await axios.get(url).then((metars) => metars.data);
+      const metarObjects: MetarObject[] = await axios.get(url).then((metars) => metars.data);
 
-    const output = metarObjects.reverse().map((m: MetarObject) => m.rawOb);
+      const output = metarObjects.reverse().map((m: MetarObject) => m.rawOb);
 
-    res.status(200).json({ metars: output });
+      res.status(200).json({ metars: output });
+    } else {
+      res.status(400).json({ metars: [] });
+    }
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.sendStatus(503);
   }
 };
 
@@ -36,35 +40,48 @@ export const siteData = async (req: Request, res: Response) => {
   try {
     const { site } = req.query;
 
-    const url = `http://aviationweather.gov/api/data/stationinfo?ids=${site}&format=json`;
+    if (site) {
+      const url = `http://aviationweather.gov/api/data/stationinfo?ids=${site}&format=json`;
 
-    console.log("requesting station info from:", url);
+      console.log("requesting station info from:", url);
 
-    const siteData: StationObject = await axios.get(url).then((site) => site.data[0]);
+      const siteData: StationObject = await axios.get(url).then((site) => site.data[0]);
 
-    const times: GetTimesResult = suncalc.getTimes(new Date(), siteData.lat, siteData.lon);
+      const times: GetTimesResult = suncalc.getTimes(new Date(), siteData.lat, siteData.lon);
 
-    const riseString: string =
-      leadZero(times.sunrise.getUTCHours()) + ":" + leadZero(times.sunrise.getUTCMinutes()) + "Z";
-    const setString: string =
-      leadZero(times.sunsetStart.getUTCHours()) + ":" + leadZero(times.sunsetStart.getUTCMinutes()) + "Z";
+      const riseString: string =
+        leadZero(times.sunrise.getUTCHours()) + ":" + leadZero(times.sunrise.getUTCMinutes()) + "Z";
+      const setString: string =
+        leadZero(times.sunsetStart.getUTCHours()) + ":" + leadZero(times.sunsetStart.getUTCMinutes()) + "Z";
 
-    res.status(200).json({
-      icaoId: siteData.icaoId,
-      location: siteData.site + ", " + siteData.state,
-      lat:
-        siteData.lat > 0
-          ? (Math.round(siteData.lat * 10) / 10).toString() + "°N"
-          : Math.abs(Math.round(siteData.lat * 10) / 10).toString() + "°S",
-      lon:
-        siteData.lon > 0
-          ? (Math.round(siteData.lon * 10) / 10).toString() + "°E"
-          : Math.abs(Math.round(siteData.lon * 10) / 10).toString() + "°W",
-      elev_f: Math.floor(siteData.elev * FEET_PER_METRE) + " ft",
-      elev_m: siteData.elev + " m",
-      sunrise: riseString,
-      sunset: setString,
-    });
+      res.status(200).json({
+        icaoId: siteData.icaoId,
+        location: siteData.site + ", " + siteData.state,
+        lat:
+          siteData.lat > 0
+            ? (Math.round(siteData.lat * 10) / 10).toString() + "°N"
+            : Math.abs(Math.round(siteData.lat * 10) / 10).toString() + "°S",
+        lon:
+          siteData.lon > 0
+            ? (Math.round(siteData.lon * 10) / 10).toString() + "°E"
+            : Math.abs(Math.round(siteData.lon * 10) / 10).toString() + "°W",
+        elev_f: Math.floor(siteData.elev * FEET_PER_METRE) + " ft",
+        elev_m: siteData.elev + " m",
+        sunrise: riseString,
+        sunset: setString,
+      });
+    } else {
+      res.status(400).json({
+        icaoID: "Unknown",
+        location: "Unknown",
+        lat: "Unknown",
+        lon: "Uknown",
+        elev_f: "Uknown",
+        elev_m: "Uknown",
+        sunrise: "Uknown",
+        sunset: "Uknown",
+      });
+    }
   } catch (error) {
     console.log(error);
     res.sendStatus(400);
@@ -75,27 +92,35 @@ export const taf = async (req: Request, res: Response) => {
   try {
     const { site } = req.query;
 
-    const url = `http://aviationweather.gov/api/data/taf?ids=${site}&format=json`;
+    if (site) {
+      const url = `http://aviationweather.gov/api/data/taf?ids=${site}&format=json`;
 
-    console.log("requesting taf from:", url);
+      console.log("requesting taf from:", url);
 
-    const tafObject: TafObject = await axios.get(url).then((taf) => taf.data[0]);
+      const tafObject: TafObject = await axios.get(url).then((taf) => taf.data[0]);
 
-    const rawTAF = tafObject.rawTAF.replaceAll(/(FM|TEMPO|BECMG|PROB|RMK)/g, "\n$1");
+      const rawTAF = tafObject.rawTAF.replaceAll(/(FM|TEMPO|BECMG|PROB|RMK)/g, "\n$1");
 
-    const tafMain = rawTAF.match(
-      /((TAF\s)?(AMD\s)?(\w{4}\s\d{6}Z\s\d{4}\/\d{4}\s)(\d{5}|VRB\d{2})(G\d{2})?(KT.+))/g
-    ) as string[];
+      const tafMain = rawTAF.match(
+        /((TAF\s)?(AMD\s)?(\w{4}\s\d{6}Z\s\d{4}\/\d{4}\s)(\d{5}|VRB\d{2})(G\d{2})?(KT.+))/g
+      ) as string[];
 
-    const partPeriods = [...rawTAF.matchAll(/(TEMPO.+|PROB30.+|PROB40.+|BECMG.+|FM\d{6}.+)/g)].map((pp) =>
-      pp[0].trim()
-    );
+      const partPeriods = [...rawTAF.matchAll(/(TEMPO.+|PROB30.+|PROB40.+|BECMG.+|FM\d{6}.+)/g)].map((pp) =>
+        pp[0].trim()
+      );
 
-    res.status(200).json({
-      main: tafMain[0].trim(),
-      partPeriods: partPeriods,
-      rmk: tafObject.remarks,
-    });
+      res.status(200).json({
+        main: tafMain[0].trim(),
+        partPeriods: partPeriods,
+        rmk: tafObject.remarks,
+      });
+    } else {
+      res.status(400).json({
+        main: "",
+        partPeriods: [],
+        rmk: "",
+      });
+    }
   } catch (error) {
     console.log(error);
     res.sendStatus(400);

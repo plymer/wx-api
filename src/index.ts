@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import { metars, taf, siteData, hubs, gfa, sigwx, lgf } from "./endpoints/aviation";
 import endpoints from "./endpoints.json";
+import cors from "cors";
 
 // initialize the server
 const app = express();
@@ -8,6 +9,9 @@ const port = process.env.PORT || 3000;
 
 // enable json
 app.use(express.json());
+
+// enable cors
+app.use(cors());
 
 // add endpoints - base will return endpoint definitions
 app.get("/", (req: Request, res: Response) => {

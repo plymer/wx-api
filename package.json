@@ -13,10 +13,12 @@
   "dependencies": {
     "@types/suncalc": "^1.9.2",
     "axios": "^1.7.7",
+    "cors": "^2.8.5",
     "express": "^4.21.1",
     "suncalc": "^1.9.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.7.7",
     "tsx": "^4.19.1",
