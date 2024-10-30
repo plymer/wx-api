@@ -277,7 +277,7 @@ export const gfa = async (req: Request, res: Response) => {
 
     // i am too lazy to define this type-shape so we will ts-ignore the type assigment error below because this is a valid piece of code
     let results = {};
-    rawList.forEach((gfa) => {
+    rawList.forEach((gfa, index) => {
       if (Object.hasOwn(results, gfa.geography.toLowerCase())) {
         // the gfa is already in our results, but we need to add it's CLDWX or TURBC data to the results
         //@ts-ignore
@@ -297,7 +297,19 @@ export const gfa = async (req: Request, res: Response) => {
       }
     });
 
-    res.status(200).json(results);
+    type GFAList = {
+      domain: string;
+      cldwx: string[];
+      turbc: string[];
+    };
+
+    let output: GFAList[] = [];
+
+    // continue to ts-ignore the non-shaped 'results' because eff that right now
+    // @ts-ignore
+    Object.keys(results).forEach((d) => output.push({ domain: d, cldwx: results[d].cldwx, turbc: results[d].turbc }));
+
+    res.status(200).json(output);
   } catch (error) {
     console.log(error);
     res.sendStatus(400);
@@ -306,7 +318,7 @@ export const gfa = async (req: Request, res: Response) => {
 
 export const sigwx = async (req: Request, res: Response) => {
   try {
-    const url = "https://plan.navcanada.ca/weather/api/alpha/?site=CYHZ&image=SIG_WX//MID_LEVEL/*&image=TURBULENCE";
+    const url = "https://plan.navcanada.ca/weather/api/alpha/?site=CYHZ&image=SIG_WX//MID_LEVEL/*";
 
     console.log("requesting sigwx charts from:", url);
 
@@ -323,24 +335,75 @@ export const sigwx = async (req: Request, res: Response) => {
         // the product is already in our results, but we need to add the other type of chart to the results
         //@ts-ignore
         Object.assign(results[product], {
-          [product === "turbulence" ? p.geography.toLowerCase() : p.sub_geography.toLowerCase()]:
-            p.frame_lists[0].frames.map(
-              (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
-            ),
+          [p.sub_geography.toLowerCase()]: p.frame_lists[0].frames.map(
+            (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+          ),
         });
       } else {
         Object.assign(results, {
           [product]: {
-            [product === "turbulence" ? p.geography.toLowerCase() : p.sub_geography.toLowerCase()]:
-              p.frame_lists[0].frames.map(
-                (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
-              ),
+            [p.sub_geography.toLowerCase()]: p.frame_lists[0].frames.map(
+              (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+            ),
           },
         });
       }
     });
 
-    res.status(200).json(results);
+    type SigWxList = { domain: string; images: string[] };
+
+    // continue to ts-ignore the non-shaped 'results' because eff that right now
+    // @ts-ignore
+    let output: SigWxList[] = [{ domain: "atlantic", images: results.sig_wx.atlantic },{ domain: "canada", images: results.sig_wx.canada }]; // prettier-ignore
+
+    res.status(200).json(output);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(400);
+  }
+};
+
+export const hlt = async (req: Request, res: Response) => {
+  try {
+    const url = "https://plan.navcanada.ca/weather/api/alpha/?site=CYHZ&image=TURBULENCE";
+
+    console.log("requesting hlt charts from:", url);
+
+    const ncAPIData: NavCanResponse = await axios.get(url).then((gfas) => gfas.data);
+
+    const rawList = ncAPIData.data.map((region) => JSON.parse(region.text) as NavCanImageList);
+
+    // i am too lazy to define this type-shape so we will ts-ignore the type assigment error below because this is a valid piece of code
+    let results = {};
+    rawList.forEach((p) => {
+      const product = p.product.toLowerCase();
+
+      if (Object.hasOwn(results, product)) {
+        // the product is already in our results, but we need to add the other type of chart to the results
+        //@ts-ignore
+        Object.assign(results[product], {
+          [p.geography.toLowerCase()]: p.frame_lists[0].frames.map(
+            (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+          ),
+        });
+      } else {
+        Object.assign(results, {
+          [product]: {
+            [p.geography.toLowerCase()]: p.frame_lists[0].frames.map(
+              (f) => "https://plan.navcanada.ca/weather/images/" + f.images[f.images.length - 1].id + ".image"
+            ),
+          },
+        });
+      }
+    });
+
+    type HLTList = { domain: string; images: string[] };
+
+    // continue to ts-ignore the non-shaped 'results' because eff that right now
+    // @ts-ignore
+    let output: HLTList[] = [{ domain: "canada", images: results.turbulence.canada },{ domain: "north_atlantic", images: results.turbulence.north_atlantic },]; // prettier-ignore
+
+    res.status(200).json(output);
   } catch (error) {
     console.log(error);
     res.sendStatus(400);
@@ -349,7 +412,7 @@ export const sigwx = async (req: Request, res: Response) => {
 
 export const lgf = async (req: Request, res: Response) => {
   try {
-    const url = "https://plan.navcanada.ca/weather/api/alpha/?site=CYPR&site=CYZT&image=LGF";
+    const url = "https://plan.navcanada.ca/weather/api/alpha/?site=CZVR&image=LGF";
 
     console.log("requesting lgfs from:", url);
 
@@ -366,7 +429,18 @@ export const lgf = async (req: Request, res: Response) => {
       });
     });
 
-    res.status(200).json(results);
+    type LGFList = {
+      domain: string;
+      images: string[];
+    };
+
+    let output: LGFList[] = [];
+
+    // continue to ts-ignore the non-shaped 'results' because eff that right now
+    // @ts-ignore
+    Object.keys(results).forEach((p) => output.push({ domain: p, images: results[p] }));
+
+    res.status(200).json(output);
   } catch (error) {
     console.log(error);
     res.sendStatus(400);

@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { metars, taf, siteData, hubs, gfa, sigwx, lgf } from "./endpoints/aviation";
+import { metars, taf, siteData, hubs, gfa, sigwx, lgf, hlt } from "./endpoints/aviation";
 import endpoints from "./endpoints.json";
 import cors from "cors";
 
@@ -25,6 +25,7 @@ app.get("/alpha/taf", taf);
 app.get("/alpha/hubs", hubs);
 app.get("/charts/gfa", gfa);
 app.get("/charts/sigwx", sigwx);
+app.get("/charts/hlt", hlt);
 app.get("/charts/lgf", lgf);
 
 // public endpoints
