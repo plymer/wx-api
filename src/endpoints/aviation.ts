@@ -15,20 +15,39 @@ import {
 
 export const metars = async (req: Request, res: Response) => {
   try {
-    const { site, hrs } = req.query;
+    // we might need to mutate the site variable
+    let { site, hrs } = req.query;
 
-    if (site && hrs) {
-      const url = `http://aviationweather.gov/api/data/metar?ids=${site}&hours=${hrs}&format=json`;
+    // check if we are missing any queryParams
+    if (!site || !hrs) {
+      res
+        .status(400)
+        .json({ status: "error", error: `one or more parameters are missing - site: '${site}' | hrs: '${hrs}'` });
+      return;
+    }
 
-      console.log("requesting metars from:", url);
+    // do a conversion for CYEU -> CWEU
+    site.toString().toUpperCase() === "CYEU" ? (site = "CWEU") : "";
 
-      const metarObjects: MetarObject[] = await axios.get(url).then((metars) => metars.data);
+    // begin data retrieval
+    const url = `http://aviationweather.gov/api/data/metar?ids=${site}&hours=${hrs}&format=json`;
+    console.log("requesting metars from:", url);
+    const metarObjects: MetarObject[] | string = await axios.get(url).then((metars) => metars.data);
 
+    // check for the presence of valid data, otherwise return an error message
+    if (metarObjects.length === 0 || metarObjects === "error retrieving data") {
+      // we do not have any METARs that we can return, so send an empty response
+      res.status(400).json({
+        status: "error",
+        error: `no METARs found for '${site?.toString().toUpperCase()}'`,
+      });
+      return;
+    }
+
+    // if our returned value is an object, we know we have valid output
+    if (typeof metarObjects === "object") {
       const output = metarObjects.reverse().map((m: MetarObject) => m.rawOb);
-
-      res.status(200).json({ metars: output });
-    } else {
-      res.status(400).json({ metars: [] });
+      res.status(200).json({ status: "success", metars: output });
     }
   } catch (error) {
     console.log(error);
@@ -38,48 +57,65 @@ export const metars = async (req: Request, res: Response) => {
 
 export const siteData = async (req: Request, res: Response) => {
   try {
-    const { site } = req.query;
+    // we might need to mutate the site variable
+    let { site } = req.query;
 
-    if (site) {
-      const url = `http://aviationweather.gov/api/data/stationinfo?ids=${site}&format=json`;
+    // check if we are missing any queryParams
+    if (!site) {
+      res.status(400).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
+      return;
+    }
 
-      console.log("requesting station info from:", url);
+    // do a conversion for CWEU -> CYEU
+    site.toString().toUpperCase() === "CWEU" ? (site = "CYEU") : "";
 
-      const siteData: StationObject = await axios.get(url).then((site) => site.data[0]);
+    const url = `http://aviationweather.gov/api/data/stationinfo?ids=${site}&format=json`;
+    console.log("requesting station info from:", url);
+    const siteData: StationObject[] = await axios.get(url).then((site) => site.data);
 
-      const times: GetTimesResult = suncalc.getTimes(new Date(), siteData.lat, siteData.lon);
-
-      const riseString: string =
-        leadZero(times.sunrise.getUTCHours()) + ":" + leadZero(times.sunrise.getUTCMinutes()) + "Z";
-      const setString: string =
-        leadZero(times.sunsetStart.getUTCHours()) + ":" + leadZero(times.sunsetStart.getUTCMinutes()) + "Z";
-
-      res.status(200).json({
-        icaoId: siteData.icaoId,
-        location: siteData.site + ", " + siteData.state,
-        lat:
-          siteData.lat > 0
-            ? (Math.round(siteData.lat * 10) / 10).toString() + "°N"
-            : Math.abs(Math.round(siteData.lat * 10) / 10).toString() + "°S",
-        lon:
-          siteData.lon > 0
-            ? (Math.round(siteData.lon * 10) / 10).toString() + "°E"
-            : Math.abs(Math.round(siteData.lon * 10) / 10).toString() + "°W",
-        elev_f: Math.floor(siteData.elev * FEET_PER_METRE) + " ft",
-        elev_m: siteData.elev + " m",
-        sunrise: riseString,
-        sunset: setString,
-      });
-    } else {
+    // check for the presence of valid data, otherwise return an error message
+    if (siteData.length === 0) {
+      // we do not have any site data that we can return, so send an empty response
       res.status(400).json({
-        icaoID: "Unknown",
-        location: "Unknown",
-        lat: "Unknown",
-        lon: "Uknown",
-        elev_f: "Uknown",
-        elev_m: "Uknown",
-        sunrise: "Uknown",
-        sunset: "Uknown",
+        status: "error",
+        error: `no Site Data found for '${site?.toString().toUpperCase()}'`,
+      });
+      return;
+    }
+
+    if (typeof siteData === "object") {
+      // create a suncalc time object
+      const times: GetTimesResult = suncalc.getTimes(new Date(), siteData[0].lat, siteData[0].lon);
+
+      // set sunrise and sunset times to "---" when the sun doesn't rise or set today
+      const riseString: string =
+        times.sunrise.getUTCHours().toString() !== "NaN"
+          ? leadZero(times.sunrise.getUTCHours()) + ":" + leadZero(times.sunrise.getUTCMinutes()) + "Z"
+          : "---";
+      const setString: string =
+        times.sunsetStart.getUTCHours().toString() !== "NaN"
+          ? leadZero(times.sunsetStart.getUTCHours()) + ":" + leadZero(times.sunsetStart.getUTCMinutes()) + "Z"
+          : "---";
+
+      // return the site data object
+      res.status(200).json({
+        status: "success",
+        metadata: {
+          icaoId: siteData[0].icaoId,
+          location: siteData[0].site + ", " + siteData[0].state,
+          lat:
+            siteData[0].lat > 0
+              ? (Math.round(siteData[0].lat * 10) / 10).toString() + "°N"
+              : Math.abs(Math.round(siteData[0].lat * 10) / 10).toString() + "°S",
+          lon:
+            siteData[0].lon > 0
+              ? (Math.round(siteData[0].lon * 10) / 10).toString() + "°E"
+              : Math.abs(Math.round(siteData[0].lon * 10) / 10).toString() + "°W",
+          elev_f: Math.floor(siteData[0].elev * FEET_PER_METRE) + " ft",
+          elev_m: siteData[0].elev + " m",
+          sunrise: riseString,
+          sunset: setString,
+        },
       });
     }
   } catch (error) {
@@ -90,16 +126,35 @@ export const siteData = async (req: Request, res: Response) => {
 
 export const taf = async (req: Request, res: Response) => {
   try {
-    const { site } = req.query;
+    // we may need to mutate the site variable
+    let { site } = req.query;
 
-    if (site) {
-      const url = `http://aviationweather.gov/api/data/taf?ids=${site}&format=json`;
+    if (!site) {
+      res.status(400).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
+      return;
+    }
 
-      console.log("requesting taf from:", url);
+    // do a conversion for CWEU -> CYEU
+    site.toString().toUpperCase() === "CWEU" ? (site = "CYEU") : "";
 
-      const tafObject: TafObject = await axios.get(url).then((taf) => taf.data[0]);
+    const url = `http://aviationweather.gov/api/data/taf?ids=${site}&format=json`;
+    console.log("requesting taf from:", url);
+    const tafObject: TafObject[] | string = await axios.get(url).then((taf) => taf.data);
 
-      const rawTAF = tafObject.rawTAF.replaceAll(/(FM|TEMPO|BECMG|PROB|RMK)/g, "\n$1");
+    // no match for a taf site on avwx.gov returns zero-length array of json, or for an error
+    // returns a string of "error retrieving data"
+    if (tafObject.length === 0 || tafObject === "error retrieving data") {
+      // we do not have a TAF that we can return, so send an empty response
+      res.status(400).json({
+        status: "error",
+        error: `no TAF found for '${site?.toString().toUpperCase()}'`,
+      });
+      return;
+    }
+
+    if (typeof tafObject === "object") {
+      // we have a valid TAF to return, so begin data mutation to our desired output format
+      const rawTAF = tafObject[0].rawTAF.replaceAll(/(FM|TEMPO|BECMG|PROB|RMK)/g, "\n$1");
 
       const tafMain = rawTAF.match(
         /((TAF\s)?(AMD\s)?(\w{4}\s\d{6}Z\s\d{4}\/\d{4}\s)(\d{5}|VRB\d{2})(G\d{2})?(KT.+))/g
@@ -110,15 +165,12 @@ export const taf = async (req: Request, res: Response) => {
       );
 
       res.status(200).json({
-        main: tafMain[0].trim(),
-        partPeriods: partPeriods,
-        rmk: tafObject.remarks,
-      });
-    } else {
-      res.status(400).json({
-        main: "",
-        partPeriods: [],
-        rmk: "",
+        status: "success",
+        taf: {
+          main: tafMain[0].trim(),
+          partPeriods: partPeriods,
+          rmk: tafObject[0].remarks,
+        },
       });
     }
   } catch (error) {
@@ -131,39 +183,80 @@ export const hubs = async (req: Request, res: Response) => {
   try {
     const { site } = req.query;
 
+    // check if we are missing any queryParams
+    if (!site) {
+      res.status(400).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
+      return;
+    }
+
+    // check to see if we have requested a hub or not
+    if (site !== "cyyz" && "cyul" && "cyvr" && "cyyc") {
+      res.status(200).json({
+        message: "error",
+        error: `No hub discussion available for '${site.toString().toUpperCase()}'`,
+      });
+      return;
+    }
+
+    // we have passed all the tests, get the data
     const url = "https://metaviation.ec.gc.ca/hubwx/scripts/getForecasterNotes.php";
-
     console.log("requesting hub discussions from:", url);
-
     const hubs: HubDiscussion = await axios.get(url).then((hub) => hub.data);
 
+    // i hate the way the data is returned but maybe that will change in the future
     switch (site) {
       case "cyyz":
         res.status(200).json({
-          siteName: "Toronto Pearson Intl Airport",
-          text: hubs.CYYZ.strtext,
+          message: "success",
+          hubData: {
+            siteName: "Toronto Pearson Intl Airport",
+            header: hubs.CYYZ.strheaders,
+            discussion: hubs.CYYZ.strdiscussion,
+            outlook: hubs.CYYZ.stroutlook,
+            forecaster: hubs.CYYZ.strforecaster,
+            office: hubs.CYYZ.stroffice,
+          },
         });
         break;
       case "cyyc":
-        res.status(200).json({ siteName: "Calgary Intl Airport", text: hubs.CYYC.strtext });
+        res.status(200).json({
+          message: "success",
+          hubData: {
+            siteName: "Calgary Intl Airport",
+            header: hubs.CYYC.strheaders,
+            discussion: hubs.CYYC.strdiscussion,
+            outlook: hubs.CYYC.stroutlook,
+            forecaster: hubs.CYYC.strforecaster,
+            office: hubs.CYYC.stroffice,
+          },
+        });
         break;
       case "cyvr":
         res.status(200).json({
-          siteName: "Vancouver Intl Airport",
-          text: hubs.CYVR.strtext,
+          message: "success",
+          hubData: {
+            siteName: "Vancouver Intl Airport",
+            header: hubs.CYVR.strheaders,
+            discussion: hubs.CYVR.strdiscussion,
+            outlook: hubs.CYVR.stroutlook,
+            forecaster: hubs.CYVR.strforecaster,
+            office: hubs.CYVR.stroffice,
+          },
         });
         break;
       case "cyul":
         res.status(200).json({
-          siteName: "Montreal Trudeau Airport",
-          text: hubs.CYUL.strtext,
+          message: "success",
+          hubData: {
+            siteName: "Montreal Trudeau Airport",
+            header: hubs.CYUL.strheaders,
+            discussion: hubs.CYUL.strdiscussion,
+            outlook: hubs.CYUL.stroutlook,
+            forecaster: hubs.CYUL.strforecaster,
+            office: hubs.CYUL.stroffice,
+          },
         });
         break;
-      default:
-        res.status(200).json({
-          siteName: `${site}`,
-          text: `No hub discussion available for ${site}`.toUpperCase(),
-        });
     }
   } catch (error) {
     console.log(error);
