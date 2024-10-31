@@ -21,7 +21,7 @@ export const metars = async (req: Request, res: Response) => {
     // check if we are missing any queryParams
     if (!site || !hrs) {
       res
-        .status(400)
+        .status(200)
         .json({ status: "error", error: `one or more parameters are missing - site: '${site}' | hrs: '${hrs}'` });
       return;
     }
@@ -37,7 +37,7 @@ export const metars = async (req: Request, res: Response) => {
     // check for the presence of valid data, otherwise return an error message
     if (metarObjects.length === 0 || metarObjects === "error retrieving data") {
       // we do not have any METARs that we can return, so send an empty response
-      res.status(400).json({
+      res.status(200).json({
         status: "error",
         error: `no METARs found for '${site?.toString().toUpperCase()}'`,
       });
@@ -51,7 +51,7 @@ export const metars = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.log(error);
-    res.sendStatus(503);
+    res.status(400).json({ status: "error", error: error });
   }
 };
 
@@ -62,7 +62,7 @@ export const siteData = async (req: Request, res: Response) => {
 
     // check if we are missing any queryParams
     if (!site) {
-      res.status(400).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
+      res.status(200).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
       return;
     }
 
@@ -76,7 +76,7 @@ export const siteData = async (req: Request, res: Response) => {
     // check for the presence of valid data, otherwise return an error message
     if (siteData.length === 0) {
       // we do not have any site data that we can return, so send an empty response
-      res.status(400).json({
+      res.status(200).json({
         status: "error",
         error: `no Site Data found for '${site?.toString().toUpperCase()}'`,
       });
@@ -120,7 +120,7 @@ export const siteData = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.status(400).json({ status: "error", error: error });
   }
 };
 
@@ -130,7 +130,7 @@ export const taf = async (req: Request, res: Response) => {
     let { site } = req.query;
 
     if (!site) {
-      res.status(400).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
+      res.status(200).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
       return;
     }
 
@@ -145,7 +145,7 @@ export const taf = async (req: Request, res: Response) => {
     // returns a string of "error retrieving data"
     if (tafObject.length === 0 || tafObject === "error retrieving data") {
       // we do not have a TAF that we can return, so send an empty response
-      res.status(400).json({
+      res.status(200).json({
         status: "error",
         error: `no TAF found for '${site?.toString().toUpperCase()}'`,
       });
@@ -175,7 +175,7 @@ export const taf = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.status(400).json({ status: "error", error: error });
   }
 };
 
@@ -185,7 +185,7 @@ export const hubs = async (req: Request, res: Response) => {
 
     // check if we are missing any queryParams
     if (!site) {
-      res.status(400).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
+      res.status(200).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
       return;
     }
 
@@ -207,7 +207,7 @@ export const hubs = async (req: Request, res: Response) => {
     switch (site) {
       case "cyyz":
         res.status(200).json({
-          message: "success",
+          status: "success",
           hubData: {
             siteName: "Toronto Pearson Intl Airport",
             header: hubs.CYYZ.strheaders,
@@ -220,7 +220,7 @@ export const hubs = async (req: Request, res: Response) => {
         break;
       case "cyyc":
         res.status(200).json({
-          message: "success",
+          status: "success",
           hubData: {
             siteName: "Calgary Intl Airport",
             header: hubs.CYYC.strheaders,
@@ -233,7 +233,7 @@ export const hubs = async (req: Request, res: Response) => {
         break;
       case "cyvr":
         res.status(200).json({
-          message: "success",
+          status: "success",
           hubData: {
             siteName: "Vancouver Intl Airport",
             header: hubs.CYVR.strheaders,
@@ -246,7 +246,7 @@ export const hubs = async (req: Request, res: Response) => {
         break;
       case "cyul":
         res.status(200).json({
-          message: "success",
+          status: "success",
           hubData: {
             siteName: "Montreal Trudeau Airport",
             header: hubs.CYUL.strheaders,
@@ -260,7 +260,7 @@ export const hubs = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.status(400).json({ status: "error", error: error });
   }
 };
 
@@ -312,7 +312,7 @@ export const gfa = async (req: Request, res: Response) => {
     res.status(200).json(output);
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.status(400).json({ status: "error", error: error });
   }
 };
 
@@ -359,7 +359,7 @@ export const sigwx = async (req: Request, res: Response) => {
     res.status(200).json(output);
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.status(400).json({ status: "error", error: error });
   }
 };
 
@@ -406,7 +406,7 @@ export const hlt = async (req: Request, res: Response) => {
     res.status(200).json(output);
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.status(400).json({ status: "error", error: error });
   }
 };
 
@@ -443,6 +443,6 @@ export const lgf = async (req: Request, res: Response) => {
     res.status(200).json(output);
   } catch (error) {
     console.log(error);
-    res.sendStatus(400);
+    res.status(400).json({ status: "error", error: error });
   }
 };
