@@ -190,7 +190,7 @@ export const hubs = async (req: Request, res: Response) => {
     }
 
     // check to see if we have requested a hub or not
-    if (site !== "cyyz" && "cyul" && "cyvr" && "cyyc") {
+    if (site !== "cyul" && site !== "cyyz" && site !== "cyvr" && site !== "cyyc") {
       res.status(200).json({
         message: "error",
         error: `No hub discussion available for '${site.toString().toUpperCase()}'`,
