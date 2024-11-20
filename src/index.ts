@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import { metars, taf, siteData, hubs, gfa, sigwx, lgf, hlt } from "./endpoints/aviation";
 import endpoints from "./endpoints.json";
 import cors from "cors";
+import { layerParams } from "./endpoints/map";
 
 // initialize the server
 const app = express();
@@ -31,9 +32,7 @@ app.get("/charts/lgf", lgf);
 // public endpoints
 
 // general endpoints
-app.get("/gfy", (req: Request, res: Response) => {
-  res.send("Eh, go fuck yaself");
-});
+app.get("/geomet", layerParams);
 
 // start the server
 app.listen(port, () => {

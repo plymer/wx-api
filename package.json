@@ -12,6 +12,7 @@
   "description": "A data-serving API for prairiewx.ca",
   "dependencies": {
     "@types/suncalc": "^1.9.2",
+    "@xmldom/xmldom": "^0.9.5",
     "axios": "^1.7.7",
     "cors": "^2.8.5",
     "express": "^4.21.1",
