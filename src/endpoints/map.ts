@@ -1,9 +1,12 @@
 import { Request, Response } from "express";
 import { DOMParser } from "@xmldom/xmldom";
 import axios from "axios";
+import { coordinateTimes } from "../lib/utils";
+import { LayerProperties } from "../lib/generic-types";
 
 interface GeoMetLayer {
   layers: string;
+  coordinate?: boolean;
 }
 
 export const GEOMET_GETCAPABILITIES: string =
@@ -13,7 +16,7 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
   try {
     const parser = new DOMParser();
 
-    let { layers } = req.query;
+    let { layers, coordinate } = req.query;
 
     if (!layers) {
       return res.status(400).json({ status: "error", message: "No layers were requested" });
@@ -24,20 +27,34 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
 
     const xml = await axios.get(GEOMET_GETCAPABILITIES).then((response) => response.data);
 
-    searches.forEach((layer) => {
-      const geometLayers = parser.parseFromString(xml, "text/xml").getElementsByTagName("Layer");
+    const options = parser
+      .parseFromString(xml, "application/xml")
+      .getElementsByTagName("Capability")[0]
+      .getElementsByTagName("Layer");
 
-      //   console.log(geometLayers.length);
+    const capabilities = [...options]
+      .map((l, i) =>
+        l.getAttribute("opaque") && l.hasChildNodes() && l.getElementsByTagName("Dimension")
+          ? {
+              name: l.getElementsByTagName("Name")[0].childNodes[0].nodeValue,
+              dimension: l.getElementsByTagName("Dimension")[0].childNodes[0].nodeValue,
+            }
+          : ""
+      )
+      .filter((v) => v !== "") as LayerProperties[];
 
-      [...geometLayers].map((l, i) =>
-        [...l.childNodes].map((c, j) => (c.childNodes["childNodes"] !== null ? console.log(c.childNodes, j) : ""))
-      );
-    });
+    // give the option to search all possible layers with a search param of 'layers=all'\
+    // otherwise, return the requested layer details
+    let output =
+      layers === "all"
+        ? capabilities
+        : (searches.map((layer) => capabilities.find((c) => c.name === layer)) as LayerProperties[]);
 
-    const output = searches.map((s) => s);
+    // if we have chosen to coordinate all of the layer times, do that now
+    output = coordinate ? coordinateTimes(output.map((l) => l)) : output;
 
     return res.status(200).json({ status: "success", layers: output });
   } catch (error) {
-    return res.status(400).json({ status: "error", message: "There was an error with the request" });
+    return res.status(400).json({ status: "error", message: error });
   }
 };
