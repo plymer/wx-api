@@ -16,10 +16,11 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
   try {
     const parser = new DOMParser();
 
-    let { layers, coordinate } = req.query;
+    const { layers, coordinate } = req.query;
 
     if (!layers) {
-      return res.status(400).json({ status: "error", message: "No layers were requested" });
+      res.status(400).json({ status: "error", message: "No layers were requested" });
+      return;
     }
 
     // parse the layers requested into separate strings
@@ -53,8 +54,8 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
     // if we have chosen to coordinate all of the layer times, do that now
     output = coordinate ? coordinateTimes(output.map((l) => l)) : output;
 
-    return res.status(200).json({ status: "success", layers: output });
+    res.status(200).json({ status: "success", layers: output });
   } catch (error) {
-    return res.status(400).json({ status: "error", message: error });
+    res.status(400).json({ status: "error", message: error });
   }
 };
