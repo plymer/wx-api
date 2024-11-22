@@ -7,16 +7,14 @@ export function leadZero(input: number): string {
   return inputString.length < 2 ? "0" + inputString : inputString;
 }
 
-type TempLayer = {
-  name: string;
-  dimensionString: string;
-  start: number;
+type TempLayer = LayerProperties & {
+  start?: number;
   startString?: string;
-  end: number;
+  end?: number;
   endString?: string;
-  delta: number;
+  delta?: number;
   deltaString?: string;
-  duration: number;
+  duration?: number;
 };
 
 export function coordinateTimes(layers: LayerProperties[]) {
@@ -38,12 +36,12 @@ export function coordinateTimes(layers: LayerProperties[]) {
     const duration = endTime - startTime > 3 * 60 * 60 * 1000 ? 3 * 60 * 60 * 1000 : endTime - startTime;
 
     temp[i] = {
-      name: l.name!,
+      ...l,
+
       start: startTime,
       end: endTime,
       delta: delta,
       duration: duration / (60 * 60 * 1000),
-      dimensionString: l.dimension!,
     };
   });
 
@@ -53,20 +51,20 @@ export function coordinateTimes(layers: LayerProperties[]) {
   let losers: string[] = []; // the layers that will have (potentially) duplicated time steps and the end of their run to sync with the winner
 
   temp.forEach((l) => {
-    if (l.end > t) {
-      t = l.end;
-      winner = l.name;
-      winnerDelta = l.delta;
+    if (l.end! > t) {
+      t = l.end!;
+      // winner = l.name;
+      winnerDelta = l.delta!;
     } else {
-      losers.push(l.name);
+      losers.push(l.name!);
     }
   });
 
   // let's start from our end time
 
   temp.forEach((layer) => {
-    const endDiff = layer.end - t;
-    var layerTimeRemaining: number = layer.end;
+    const endDiff = layer.end! - t;
+    var layerTimeRemaining: number = layer.end!;
     var winnerTimeRemaining: number = t;
 
     // console.log(
@@ -93,8 +91,8 @@ export function coordinateTimes(layers: LayerProperties[]) {
       if (frameCaughtUp === 9999 && winnerTimeRemaining <= layerTimeRemaining) {
         frameCaughtUp = i;
       } else if (
-        winnerTimeRemaining > layerTimeRemaining + layer.delta / 2 ||
-        winnerTimeRemaining <= layerTimeRemaining - layer.delta / 2
+        winnerTimeRemaining > layerTimeRemaining + layer.delta! / 2 ||
+        winnerTimeRemaining <= layerTimeRemaining - layer.delta! / 2
       ) {
         frameCaughtUp = 9999;
       }
@@ -104,12 +102,17 @@ export function coordinateTimes(layers: LayerProperties[]) {
       layerTimeRemaining =
         layerTimeRemaining <= winnerTimeRemaining && frameCaughtUp >= i
           ? layerTimeRemaining
-          : layerTimeRemaining - layer.delta;
+          : layerTimeRemaining - layer.delta!;
 
       layerFrameTimes.push(makeISOTimeStamp(layerTimeRemaining));
     }
 
-    output.push({ name: layer.name, dimension: layer.dimensionString, timeSteps: layerFrameTimes.reverse() });
+    delete layer.start;
+    delete layer.end;
+    delete layer.delta;
+    delete layer.duration;
+
+    output.push({ ...layer, timeSteps: layerFrameTimes });
   });
 
   return output;

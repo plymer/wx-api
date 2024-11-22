@@ -1,22 +1,27 @@
 import { Request, Response } from "express";
-import { DOMParser } from "@xmldom/xmldom";
+import { DOMParser, LiveNodeList } from "@xmldom/xmldom";
 import axios from "axios";
 import { coordinateTimes } from "../lib/utils";
 import { LayerProperties } from "../lib/generic-types";
 
 interface GeoMetLayer {
   layers: string;
-  coordinate?: boolean;
 }
 
 export const GEOMET_GETCAPABILITIES: string =
   "https://geo.weather.gc.ca/geomet/?lang=en&service=WMS&request=GetCapabilities&version=1.3.0&LAYERS_REFRESH_RATE=PT1M";
 
+const getTypes = (keywords: LiveNodeList) => {
+  const results = [...keywords].map((kw) => [...kw.childNodes].map((cn) => cn.nodeValue).toString());
+
+  return results.filter((kw) => kw === "Satellite images" || kw === "Radar").toString();
+};
+
 export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Response) => {
   try {
     const parser = new DOMParser();
 
-    const { layers, coordinate } = req.query;
+    const { layers } = req.query;
 
     if (!layers) {
       res.status(400).json({ status: "error", message: "No layers were requested" });
@@ -39,10 +44,18 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
           ? {
               name: l.getElementsByTagName("Name")[0].childNodes[0].nodeValue,
               dimension: l.getElementsByTagName("Dimension")[0].childNodes[0].nodeValue,
+              domain:
+                l.parentElement?.getElementsByTagName("Name")[0].childNodes[0].nodeValue?.toLowerCase() ===
+                "north american radar composite [1 km]"
+                  ? "national"
+                  : l.parentElement?.getElementsByTagName("Name")[0].childNodes[0].nodeValue?.toLowerCase(),
+              type: getTypes(l.getElementsByTagName("Keyword")) === "Satellite images" ? "satellite" : "radar",
             }
           : ""
       )
       .filter((v) => v !== "") as LayerProperties[];
+
+    // console.log(capabilities);
 
     // give the option to search all possible layers with a search param of 'layers=all'\
     // otherwise, return the requested layer details
@@ -52,7 +65,7 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
         : (searches.map((layer) => capabilities.find((c) => c.name === layer)) as LayerProperties[]);
 
     // if we have chosen to coordinate all of the layer times, do that now
-    output = coordinate ? coordinateTimes(output.map((l) => l)) : output;
+    output = layers !== "all" ? coordinateTimes(output.map((l) => l)) : output;
 
     res.status(200).json({ status: "success", layers: output });
   } catch (error) {
