@@ -32,5 +32,15 @@
       "endpoint": "/charts/lgf",
       "params": []
     }
+  ],
+  "map": [
+    {
+      "endpoint": "/geomet",
+      "params": [
+        {
+          "layers": "a comma-separated list of geomet layers to request. alternatively, request 'all' to get the full capabilities list."
+        }
+      ]
+    }
   ]
 }
