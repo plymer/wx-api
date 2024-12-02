@@ -1,17 +1,16 @@
 {
   "name": "wx-api",
   "version": "1.0.0",
-  "main": "src/index.ts",
+  "main": "index.js",
   "scripts": {
     "dev": "tsx watch ./src/index.ts",
-    "copy": "copy package*.json dist\\package*.json",
-    "build": "tsc && npm run copy"
+    "start": "node index.js",
+    "build": "tsc && copy package*.json dist"
   },
   "author": "Ryan Pimiskern",
-  "license": "ISC",
+  "license": "MIT",
   "description": "A data-serving API for prairiewx.ca",
   "dependencies": {
-    "@types/suncalc": "^1.9.2",
     "@xmldom/xmldom": "^0.9.5",
     "axios": "^1.7.7",
     "cors": "^2.8.5",
@@ -22,6 +21,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.7.7",
+    "@types/suncalc": "^1.9.2",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3"
   }

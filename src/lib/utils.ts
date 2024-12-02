@@ -112,7 +112,9 @@ export function coordinateTimes(layers: LayerProperties[]) {
     delete layer.delta;
     delete layer.duration;
 
-    output.push({ ...layer, timeSteps: layerFrameTimes });
+    // we want to make sure that the layerFrameTimes here are 'reversed' such that the array
+    //   of timesteps has the oldest times at the zeroth index
+    output.push({ ...layer, timeSteps: layerFrameTimes.reverse() });
   });
 
   return output;
