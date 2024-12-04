@@ -7,7 +7,7 @@ export function leadZero(input: number): string {
   return inputString.length < 2 ? "0" + inputString : inputString;
 }
 
-type TempLayer = LayerProperties & {
+type TempLayer = Omit<LayerProperties, "Dimension"> & {
   start?: number;
   startString?: string;
   end?: number;
@@ -107,10 +107,11 @@ export function coordinateTimes(layers: LayerProperties[]) {
       layerFrameTimes.push(makeISOTimeStamp(layerTimeRemaining));
     }
 
-    delete layer.start;
-    delete layer.end;
-    delete layer.delta;
+    // delete layer.start;
+    // delete layer.end;
+    // delete layer.delta;
     delete layer.duration;
+    delete layer.dimension;
 
     // we want to make sure that the layerFrameTimes here are 'reversed' such that the array
     //   of timesteps has the oldest times at the zeroth index

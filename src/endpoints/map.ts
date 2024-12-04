@@ -46,7 +46,9 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
               dimension: l.getElementsByTagName("Dimension")[0].childNodes[0].nodeValue,
               domain:
                 l.parentElement?.getElementsByTagName("Name")[0].childNodes[0].nodeValue?.toLowerCase() ===
-                "north american radar composite [1 km]"
+                  "north american radar composite [1 km]" ||
+                l.parentElement?.getElementsByTagName("Name")[0].childNodes[0].nodeValue?.toLowerCase() ===
+                  "north american radar surface precipitation type [1 km]"
                   ? "national"
                   : l.parentElement?.getElementsByTagName("Name")[0].childNodes[0].nodeValue?.toLowerCase(),
               type: getTypes(l.getElementsByTagName("Keyword")) === "Satellite images" ? "satellite" : "radar",
