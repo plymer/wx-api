@@ -17,14 +17,11 @@ type TempLayer = Omit<LayerProperties, "Dimension"> & {
   duration?: number;
 };
 
-export function coordinateTimes(layers: LayerProperties[]) {
+export function coordinateTimes(layers: LayerProperties[], numOfFrames: number) {
   // this will hold our temp data for our 'race'
   var temp: TempLayer[] = [];
 
   var output: LayerProperties[] = [];
-
-  // we are making an arbitrary decision of how many frames we want in the animation
-  const NUM_OF_FRAMES = 24;
 
   // loop over all the layers passed to us to generate our temp data
   layers.forEach((l, i) => {
@@ -73,7 +70,7 @@ export function coordinateTimes(layers: LayerProperties[]) {
 
   // initialize and populate our array that tracks what our timesteps are
   let realTimeArray: number[] = [];
-  for (let i = 0; i < NUM_OF_FRAMES; i++) {
+  for (let i = 0; i < numOfFrames; i++) {
     realTimeArray.push(realStartTime - i * largestDelta);
   }
 
@@ -86,7 +83,7 @@ export function coordinateTimes(layers: LayerProperties[]) {
     let frameOffset = 0;
     let syncOffset = 0;
 
-    for (let i = 0; i < NUM_OF_FRAMES; i++) {
+    for (let i = 0; i < numOfFrames; i++) {
       // calculate the current time for the layer based on
       //  a) its end time defined in geomet
       //  b) its frameOffset depending on how many frames ahead of the main timestep it is
@@ -125,6 +122,24 @@ export function coordinateTimes(layers: LayerProperties[]) {
   });
 
   return output;
+}
+
+export function generateGeoMetMetadata(layerCollection: TempLayer[]) {
+  let startTime = 0;
+  let endTime = 0;
+  let deltaTime = 0;
+
+  layerCollection.forEach((lc) => {
+    if (lc.delta && lc.delta! > deltaTime) {
+      deltaTime = lc.delta!;
+      endTime = lc.end!;
+      startTime = lc.start!;
+    } else {
+      console.log(lc.dimension);
+    }
+  });
+
+  return { start: startTime, end: endTime, delta: deltaTime };
 }
 
 export function makeISOTimeStamp(time: number, mode: "display" | "data" = "data") {

@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import { DOMParser, LiveNodeList } from "@xmldom/xmldom";
 import axios from "axios";
-import { coordinateTimes } from "../lib/utils";
+import { coordinateTimes, generateGeoMetMetadata } from "../lib/utils";
 import { LayerProperties } from "../lib/generic-types";
 
 interface GeoMetLayer {
   layers: string;
+  frames: number;
 }
 
 export const GEOMET_GETCAPABILITIES: string =
@@ -21,10 +22,15 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
   try {
     const parser = new DOMParser();
 
-    const { layers } = req.query;
+    const { layers, frames } = req.query;
 
     if (!layers) {
       res.status(400).json({ status: "error", message: "No layers were requested" });
+      return;
+    }
+
+    if (layers !== "all" && !frames) {
+      res.status(400).json({ status: "error", message: "Number of frames was not specified" });
       return;
     }
 
@@ -59,17 +65,25 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
 
     // console.log(capabilities);
 
-    // give the option to search all possible layers with a search param of 'layers=all'\
+    // give the option to search all possible layers with a search param of 'layers=all'
     // otherwise, return the requested layer details
-    let output =
+    let output: LayerProperties[] =
       layers === "all"
         ? capabilities
         : (searches.map((layer) => capabilities.find((c) => c.name === layer)) as LayerProperties[]);
 
     // if we have chosen to coordinate all of the layer times, do that now
-    output = layers !== "all" ? coordinateTimes(output.map((l) => l)) : output;
+    output =
+      layers !== "all"
+        ? coordinateTimes(
+            output.map((l) => l),
+            frames
+          )
+        : output;
 
-    res.status(200).json({ status: "success", layers: output });
+    const metadata = generateGeoMetMetadata(output);
+
+    res.status(200).json({ status: "success", metadata: metadata, layers: output });
   } catch (error) {
     res.status(400).json({ status: "error", message: error });
   }
