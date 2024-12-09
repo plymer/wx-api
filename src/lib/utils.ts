@@ -45,66 +45,72 @@ export function coordinateTimes(layers: LayerProperties[]) {
     };
   });
 
-  let t = 0; // start the 'competition' from unix epoch time zero
-  let winner = ""; // the layer that has the newest end time available
-  let winnerDelta = 0;
-  let losers: string[] = []; // the layers that will have (potentially) duplicated time steps and the end of their run to sync with the winner
+  // of the layers selected, this is the largest delta (timestep) and we will use this to drive our animation
+  // we may move this logic to the client as a parameter that can be selected
+  let largestDelta = 0;
 
+  // find the largest time delta
   temp.forEach((l) => {
-    if (l.end! > t) {
-      t = l.end!;
-      // winner = l.name;
-      winnerDelta = l.delta!;
-    } else {
-      losers.push(l.name!);
+    if (l.delta! > largestDelta) {
+      largestDelta = l.delta!;
     }
   });
 
-  // let's start from our end time
+  // set the start time and then iterate backwards from there to generate the realTimeArray
+  // realTimeArray will contain timesteps that will be used to find the 'best data' to display at that time
 
+  const currentTime = new Date();
+  const deltaMinutes = largestDelta / 60000;
+  const deltaModulo = currentTime.getUTCMinutes() % deltaMinutes;
+
+  const realStartTime = Date.UTC(
+    currentTime.getUTCFullYear(),
+    currentTime.getUTCMonth(),
+    currentTime.getUTCDate(),
+    currentTime.getUTCHours(),
+    currentTime.getUTCMinutes() - deltaModulo
+  );
+
+  // initialize and populate our array that tracks what our timesteps are
+  let realTimeArray: number[] = [];
+  for (let i = 0; i < NUM_OF_FRAMES; i++) {
+    realTimeArray.push(realStartTime - i * largestDelta);
+  }
+
+  // loop through all of our layers and generate valid timesteps for each,
+  //   using our temporary layer objects
   temp.forEach((layer) => {
-    const endDiff = layer.end! - t;
-    var layerTimeRemaining: number = layer.end!;
-    var winnerTimeRemaining: number = t;
-
-    // console.log(
-    //   "winner time:",
-    //   new Date(t),
-    //   "| layer time:",
-    //   new Date(layer.end),
-    //   "| layer name:",
-    //   layer.name,
-    //   "| winner-layer difference (min):",
-    //   endDiff / (60 * 1000),
-    //   "| layer delta (min):",
-    //   layer.delta / (60 * 1000)
-    // );
-
+    // store our valid UTC timestamps that we calculate
     let layerFrameTimes: string[] = [];
-    let frameCaughtUp: number = 9999;
+    // initialize some offsets for our for-loop
+    let frameOffset = 0;
+    let syncOffset = 0;
 
     for (let i = 0; i < NUM_OF_FRAMES; i++) {
-      // console.log(frameCaughtUp);
-      winnerTimeRemaining = i === 0 ? winnerTimeRemaining : winnerTimeRemaining - winnerDelta;
-      // console.log(new Date(winnerTimeRemaining));
+      // calculate the current time for the layer based on
+      //  a) its end time defined in geomet
+      //  b) its frameOffset depending on how many frames ahead of the main timestep it is
+      //  c) its syncOffset depending on if we need to 'hold' frames in the animation
+      //  d) its internal timestep
+      let currentLayerTime = layer.end! - (i + frameOffset - syncOffset) * layer.delta!;
 
-      if (frameCaughtUp === 9999 && winnerTimeRemaining <= layerTimeRemaining) {
-        frameCaughtUp = i;
-      } else if (
-        winnerTimeRemaining > layerTimeRemaining + layer.delta! / 2 ||
-        winnerTimeRemaining <= layerTimeRemaining - layer.delta! / 2
-      ) {
-        frameCaughtUp = 9999;
+      // add a frame offset to allow us to skip frames that don't change at the same
+      //   rate that the main timestep does
+      while (currentLayerTime > realTimeArray[i]) {
+        frameOffset++;
+        currentLayerTime = layer.end! - (i + frameOffset) * layer.delta!;
       }
 
-      // console.log(new Date(layerTimeRemaining), new Date(winnerTimeRemaining), frameCaughtUp);
+      // if our layer is behind the main time defined in the realTimeArray,
+      //   and we haven't had to add any frame offsets because our data doesn't
+      //   have a different time step, we need to sync up with the main flow
+      //   of time, so add a time offset to catch up
+      if (currentLayerTime < realTimeArray[i] && frameOffset === 0) {
+        syncOffset++;
+      }
 
-      layerTimeRemaining =
-        layerTimeRemaining <= winnerTimeRemaining && frameCaughtUp >= i
-          ? layerTimeRemaining
-          : layerTimeRemaining - layer.delta!;
-
-      layerFrameTimes.push(makeISOTimeStamp(layerTimeRemaining));
+      // push our calculated timestep to the output for the layer
+      layerFrameTimes.push(makeISOTimeStamp(currentLayerTime));
     }
 
     // delete layer.start;
