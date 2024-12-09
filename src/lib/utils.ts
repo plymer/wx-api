@@ -124,7 +124,49 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number) 
   return output;
 }
 
-export function generateGeoMetMetadata(layerCollection: TempLayer[]) {
+export function getCurrentTimeStamps(layers: LayerProperties[]) {
+  // this will hold our temp data for our 'race'
+  var temp: TempLayer[] = [];
+
+  var output: LayerProperties[] = [];
+
+  // loop over all the layers passed to us to generate our temp data
+  layers.forEach((l, i) => {
+    const timeArray = l.dimension!.split("/");
+
+    const startTime = Date.parse(timeArray[0]);
+    const endTime = Date.parse(timeArray[1]);
+    const delta = parseInt(timeArray[2].replace(/[a-zA-Z]/g, "")) * 60 * 1000;
+    const duration = endTime - startTime > 3 * 60 * 60 * 1000 ? 3 * 60 * 60 * 1000 : endTime - startTime;
+
+    temp[i] = {
+      ...l,
+
+      start: startTime,
+      end: endTime,
+      delta: delta,
+      duration: duration / (60 * 60 * 1000),
+    };
+  });
+
+  // loop through all of our layers and generate valid timesteps for each,
+  //   using our temporary layer objects
+  temp.forEach((layer) => {
+    // delete layer.start;
+    // delete layer.end;
+    // delete layer.delta;
+    delete layer.duration;
+    delete layer.dimension;
+
+    // we want to make sure that the layerFrameTimes here are 'reversed' such that the array
+    //   of timesteps has the oldest times at the zeroth index
+    output.push({ ...layer, timeSteps: [makeISOTimeStamp(layer.end!)] });
+  });
+
+  return output;
+}
+
+export function generateGeoMetMetadata(layerCollection: TempLayer[], numOfFrames: number) {
   let startTime = 0;
   let endTime = 0;
   let deltaTime = 0;
@@ -133,9 +175,7 @@ export function generateGeoMetMetadata(layerCollection: TempLayer[]) {
     if (lc.delta && lc.delta! > deltaTime) {
       deltaTime = lc.delta!;
       endTime = lc.end!;
-      startTime = lc.start!;
-    } else {
-      console.log(lc.dimension);
+      startTime = lc.end! - numOfFrames * lc.delta;
     }
   });
 

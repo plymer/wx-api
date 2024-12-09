@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import { DOMParser, LiveNodeList } from "@xmldom/xmldom";
 import axios from "axios";
-import { coordinateTimes, generateGeoMetMetadata } from "../lib/utils";
+import { coordinateTimes, generateGeoMetMetadata, getCurrentTimeStamps } from "../lib/utils";
 import { LayerProperties } from "../lib/generic-types";
 
 interface GeoMetLayer {
   layers: string;
+  mode: "loop" | undefined;
   frames: number;
 }
 
@@ -22,7 +23,7 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
   try {
     const parser = new DOMParser();
 
-    const { layers, frames } = req.query;
+    const { layers, mode, frames } = req.query;
 
     if (!layers) {
       res.status(400).json({ status: "error", message: "No layers were requested" });
@@ -75,13 +76,15 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
     // if we have chosen to coordinate all of the layer times, do that now
     output =
       layers !== "all"
-        ? coordinateTimes(
-            output.map((l) => l),
-            frames
-          )
+        ? mode === "loop"
+          ? coordinateTimes(
+              output.map((l) => l),
+              frames
+            )
+          : getCurrentTimeStamps(output.map((l) => l))
         : output;
 
-    const metadata = generateGeoMetMetadata(output);
+    const metadata = generateGeoMetMetadata(output, frames);
 
     res.status(200).json({ status: "success", metadata: metadata, layers: output });
   } catch (error) {
