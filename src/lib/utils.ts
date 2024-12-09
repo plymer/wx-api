@@ -17,7 +17,7 @@ type TempLayer = Omit<LayerProperties, "Dimension"> & {
   duration?: number;
 };
 
-export function coordinateTimes(layers: LayerProperties[], numOfFrames: number) {
+export function coordinateTimes(layers: LayerProperties[], numOfFrames: number, mode: "loop" | undefined) {
   // this will hold our temp data for our 'race'
   var temp: TempLayer[] = [];
 
@@ -84,30 +84,34 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number) 
     let syncOffset = 0;
 
     for (let i = 0; i < numOfFrames; i++) {
-      // calculate the current time for the layer based on
-      //  a) its end time defined in geomet
-      //  b) its frameOffset depending on how many frames ahead of the main timestep it is
-      //  c) its syncOffset depending on if we need to 'hold' frames in the animation
-      //  d) its internal timestep
-      let currentLayerTime = layer.end! - (i + frameOffset - syncOffset) * layer.delta!;
+      if (mode === "loop") {
+        // calculate the current time for the layer based on
+        //  a) its end time defined in geomet
+        //  b) its frameOffset depending on how many frames ahead of the main timestep it is
+        //  c) its syncOffset depending on if we need to 'hold' frames in the animation
+        //  d) its internal timestep
+        let currentLayerTime = layer.end! - (i + frameOffset - syncOffset) * layer.delta!;
 
-      // add a frame offset to allow us to skip frames that don't change at the same
-      //   rate that the main timestep does
-      while (currentLayerTime > realTimeArray[i]) {
-        frameOffset++;
-        currentLayerTime = layer.end! - (i + frameOffset) * layer.delta!;
+        // add a frame offset to allow us to skip frames that don't change at the same
+        //   rate that the main timestep does
+        while (currentLayerTime > realTimeArray[i]) {
+          frameOffset++;
+          currentLayerTime = layer.end! - (i + frameOffset) * layer.delta!;
+        }
+
+        // if our layer is behind the main time defined in the realTimeArray,
+        //   and we haven't had to add any frame offsets because our data doesn't
+        //   have a different time step, we need to sync up with the main flow
+        //   of time, so add a time offset to catch up
+        if (currentLayerTime < realTimeArray[i] && frameOffset === 0) {
+          syncOffset++;
+        }
+
+        // push our calculated timestep to the output for the layer
+        layerFrameTimes.push(makeISOTimeStamp(currentLayerTime));
+      } else {
+        layerFrameTimes.push(makeISOTimeStamp(layer.end!));
       }
-
-      // if our layer is behind the main time defined in the realTimeArray,
-      //   and we haven't had to add any frame offsets because our data doesn't
-      //   have a different time step, we need to sync up with the main flow
-      //   of time, so add a time offset to catch up
-      if (currentLayerTime < realTimeArray[i] && frameOffset === 0) {
-        syncOffset++;
-      }
-
-      // push our calculated timestep to the output for the layer
-      layerFrameTimes.push(makeISOTimeStamp(currentLayerTime));
     }
 
     // delete layer.start;
@@ -124,58 +128,20 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number) 
   return output;
 }
 
-export function getCurrentTimeStamps(layers: LayerProperties[]) {
-  // this will hold our temp data for our 'race'
-  var temp: TempLayer[] = [];
-
-  var output: LayerProperties[] = [];
-
-  // loop over all the layers passed to us to generate our temp data
-  layers.forEach((l, i) => {
-    const timeArray = l.dimension!.split("/");
-
-    const startTime = Date.parse(timeArray[0]);
-    const endTime = Date.parse(timeArray[1]);
-    const delta = parseInt(timeArray[2].replace(/[a-zA-Z]/g, "")) * 60 * 1000;
-    const duration = endTime - startTime > 3 * 60 * 60 * 1000 ? 3 * 60 * 60 * 1000 : endTime - startTime;
-
-    temp[i] = {
-      ...l,
-
-      start: startTime,
-      end: endTime,
-      delta: delta,
-      duration: duration / (60 * 60 * 1000),
-    };
-  });
-
-  // loop through all of our layers and generate valid timesteps for each,
-  //   using our temporary layer objects
-  temp.forEach((layer) => {
-    // delete layer.start;
-    // delete layer.end;
-    // delete layer.delta;
-    delete layer.duration;
-    delete layer.dimension;
-
-    // we want to make sure that the layerFrameTimes here are 'reversed' such that the array
-    //   of timesteps has the oldest times at the zeroth index
-    output.push({ ...layer, timeSteps: [makeISOTimeStamp(layer.end!)] });
-  });
-
-  return output;
-}
-
-export function generateGeoMetMetadata(layerCollection: TempLayer[], numOfFrames: number) {
+export function generateGeoMetMetadata(layerCollection: TempLayer[], numOfFrames: number, mode: "loop" | undefined) {
   let startTime = 0;
   let endTime = 0;
   let deltaTime = 0;
 
   layerCollection.forEach((lc) => {
-    if (lc.delta && lc.delta! > deltaTime) {
+    if (mode === "loop" && lc.delta && lc.delta! > deltaTime) {
       deltaTime = lc.delta!;
       endTime = lc.end!;
       startTime = lc.end! - numOfFrames * lc.delta;
+    } else {
+      deltaTime = lc.delta!;
+      endTime = lc.end!;
+      startTime = lc.end! - 3 * 60 * 60 * 1000;
     }
   });
 
