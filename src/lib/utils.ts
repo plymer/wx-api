@@ -123,9 +123,9 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number, 
       }
     }
 
-    // delete layer.start;
-    // delete layer.end;
-    // delete layer.delta;
+    delete layer.start;
+    delete layer.end;
+    delete layer.delta;
     delete layer.duration;
     delete layer.dimension;
 
@@ -134,7 +134,11 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number, 
     output.push({ ...layer, timeSteps: layerFrameTimes.reverse() });
   });
 
-  return { timesAvailable: realTimeArray.map((rt) => makeISOTimeStamp(rt)).reverse(), layers: output };
+  return {
+    timeStep: largestDelta,
+    timesAvailable: realTimeArray.map((rt) => makeISOTimeStamp(rt)).reverse(),
+    layers: output,
+  };
 }
 
 export function makeISOTimeStamp(time: number, mode: "display" | "data" = "data") {
