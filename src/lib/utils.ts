@@ -136,7 +136,7 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number, 
 
   return {
     timeStep: largestDelta,
-    timesAvailable: realTimeArray.map((rt) => makeISOTimeStamp(rt)).reverse(),
+    timesAvailable: realTimeArray.reverse(),
     layers: output,
   };
 }
