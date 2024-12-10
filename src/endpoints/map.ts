@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { DOMParser, LiveNodeList } from "@xmldom/xmldom";
 import axios from "axios";
-import { coordinateTimes, generateGeoMetMetadata } from "../lib/utils";
+import { coordinateTimes } from "../lib/utils";
 import { LayerProperties } from "../lib/generic-types";
 
 interface GeoMetLayer {
@@ -74,7 +74,7 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
         : (searches.map((layer) => capabilities.find((c) => c.name === layer)) as LayerProperties[]);
 
     // if we have chosen to coordinate all of the layer times, do that now
-    output =
+    let formattedOutput =
       layers !== "all"
         ? coordinateTimes(
             output.map((l) => l),
@@ -83,9 +83,7 @@ export const layerParams = async (req: Request<{}, {}, {}, GeoMetLayer>, res: Re
           )
         : output;
 
-    const metadata = generateGeoMetMetadata(output, frames, mode);
-
-    res.status(200).json({ status: "success", metadata: metadata, layers: output });
+    res.status(200).json({ status: "success", ...formattedOutput });
   } catch (error) {
     res.status(400).json({ status: "error", message: error });
   }

@@ -60,13 +60,22 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number, 
   const deltaMinutes = largestDelta / 60000;
   const deltaModulo = currentTime.getUTCMinutes() % deltaMinutes;
 
-  const realStartTime = Date.UTC(
-    currentTime.getUTCFullYear(),
-    currentTime.getUTCMonth(),
-    currentTime.getUTCDate(),
-    currentTime.getUTCHours(),
-    currentTime.getUTCMinutes() - deltaModulo
-  );
+  const realStartTime =
+    mode === "loop"
+      ? Date.UTC(
+          currentTime.getUTCFullYear(),
+          currentTime.getUTCMonth(),
+          currentTime.getUTCDate(),
+          currentTime.getUTCHours(),
+          currentTime.getUTCMinutes() - deltaModulo
+        )
+      : Date.UTC(
+          currentTime.getUTCFullYear(),
+          currentTime.getUTCMonth(),
+          currentTime.getUTCDate(),
+          currentTime.getUTCHours(),
+          currentTime.getUTCMinutes()
+        );
 
   // initialize and populate our array that tracks what our timesteps are
   let realTimeArray: number[] = [];
@@ -125,27 +134,7 @@ export function coordinateTimes(layers: LayerProperties[], numOfFrames: number, 
     output.push({ ...layer, timeSteps: layerFrameTimes.reverse() });
   });
 
-  return output;
-}
-
-export function generateGeoMetMetadata(layerCollection: TempLayer[], numOfFrames: number, mode: "loop" | undefined) {
-  let startTime = 0;
-  let endTime = 0;
-  let deltaTime = 0;
-
-  layerCollection.forEach((lc) => {
-    if (mode === "loop" && lc.delta && lc.delta! > deltaTime) {
-      deltaTime = lc.delta!;
-      endTime = lc.end!;
-      startTime = lc.end! - numOfFrames * lc.delta;
-    } else {
-      deltaTime = lc.delta!;
-      endTime = lc.end!;
-      startTime = lc.end! - 3 * 60 * 60 * 1000;
-    }
-  });
-
-  return { start: startTime, end: endTime, delta: deltaTime };
+  return { timesAvailable: realTimeArray.map((rt) => makeISOTimeStamp(rt)).reverse(), layers: output };
 }
 
 export function makeISOTimeStamp(time: number, mode: "display" | "data" = "data") {
