@@ -6,6 +6,7 @@ import { FEET_PER_METRE, leadZero } from "../lib/utils";
 // type definitions for response data
 import {
   HubDiscussion,
+  HubDiscussionData,
   MetarObject,
   NavCanImageList,
   NavCanResponse,
@@ -181,83 +182,53 @@ export const taf = async (req: Request, res: Response) => {
 
 export const hubs = async (req: Request, res: Response) => {
   try {
-    const { site } = req.query;
+    let { site } = req.query;
 
     // check if we are missing any queryParams
     if (!site) {
       res.status(200).json({ status: "error", error: `one or more parameters are missing - site: '${site}'` });
       return;
+    } else {
+      site = site.toString().toUpperCase();
     }
 
-    // check to see if we have requested a hub or not
-    if (site !== "cyul" && site !== "cyyz" && site !== "cyvr" && site !== "cyyc") {
-      res.status(200).json({
-        message: "error",
-        error: `No hub discussion available for '${site.toString().toUpperCase()}'`,
-      });
+    type SiteName = {
+      [siteName: string]: string;
+    };
+
+    const HubSites: SiteName = {
+      CYYZ: "Toronto Pearson Int'l Airport",
+      CYUL: "Montreal Trudeau Int'l Airport",
+      CYYC: "Calgary Int'l Airport",
+      CYVR: "Vancouver Int'l Airport",
+      CYOW: "Ottawa MacDonald Int'l Airport",
+      CYHZ: "Halifax Stanfield Airport",
+    };
+
+    // get the data
+    const url = "https://metaviation.ec.gc.ca/hubwx/scripts/getForecasterNotes.php";
+    const hubs: HubDiscussion = await axios.get(url).then((hub) => hub.data);
+
+    // check to see if the site id exists in the resulting json, return an error message if it doesnt
+    if (!Object.hasOwn(hubs, site)) {
+      res.status(400).json({ status: "error", error: `${site} does not currently have a forecast discussion` });
       return;
     }
 
-    // we have passed all the tests, get the data
-    const url = "https://metaviation.ec.gc.ca/hubwx/scripts/getForecasterNotes.php";
-    console.log("requesting hub discussions from:", url);
-    const hubs: HubDiscussion = await axios.get(url).then((hub) => hub.data);
+    // ready our data to be returned
+    const hubData = hubs[site as keyof HubDiscussion];
 
-    // i hate the way the data is returned but maybe that will change in the future
-    switch (site) {
-      case "cyyz":
-        res.status(200).json({
-          status: "success",
-          hubData: {
-            siteName: "Toronto Pearson Intl Airport",
-            header: hubs.CYYZ.strheaders,
-            discussion: hubs.CYYZ.strdiscussion,
-            outlook: hubs.CYYZ.stroutlook,
-            forecaster: hubs.CYYZ.strforecaster,
-            office: hubs.CYYZ.stroffice,
-          },
-        });
-        break;
-      case "cyyc":
-        res.status(200).json({
-          status: "success",
-          hubData: {
-            siteName: "Calgary Intl Airport",
-            header: hubs.CYYC.strheaders,
-            discussion: hubs.CYYC.strdiscussion,
-            outlook: hubs.CYYC.stroutlook,
-            forecaster: hubs.CYYC.strforecaster,
-            office: hubs.CYYC.stroffice,
-          },
-        });
-        break;
-      case "cyvr":
-        res.status(200).json({
-          status: "success",
-          hubData: {
-            siteName: "Vancouver Intl Airport",
-            header: hubs.CYVR.strheaders,
-            discussion: hubs.CYVR.strdiscussion,
-            outlook: hubs.CYVR.stroutlook,
-            forecaster: hubs.CYVR.strforecaster,
-            office: hubs.CYVR.stroffice,
-          },
-        });
-        break;
-      case "cyul":
-        res.status(200).json({
-          status: "success",
-          hubData: {
-            siteName: "Montreal Trudeau Airport",
-            header: hubs.CYUL.strheaders,
-            discussion: hubs.CYUL.strdiscussion,
-            outlook: hubs.CYUL.stroutlook,
-            forecaster: hubs.CYUL.strforecaster,
-            office: hubs.CYUL.stroffice,
-          },
-        });
-        break;
-    }
+    res.status(200).json({
+      status: "success",
+      hubData: {
+        siteName: HubSites[site],
+        header: hubData.strheaders,
+        discussion: hubData.strdiscussion,
+        outlook: hubData.stroutlook,
+        forecaster: hubData.strforecaster,
+        office: hubData.stroffice,
+      },
+    });
   } catch (error) {
     console.log(error);
     res.status(400).json({ status: "error", error: error });
@@ -277,7 +248,7 @@ export const gfa = async (req: Request, res: Response) => {
 
     // i am too lazy to define this type-shape so we will ts-ignore the type assigment error below because this is a valid piece of code
     let results = {};
-    rawList.forEach((gfa, index) => {
+    rawList.forEach((gfa) => {
       if (Object.hasOwn(results, gfa.geography.toLowerCase())) {
         // the gfa is already in our results, but we need to add it's CLDWX or TURBC data to the results
         //@ts-ignore
