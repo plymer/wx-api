@@ -417,3 +417,62 @@ export const lgf = async (req: Request, res: Response) => {
     res.status(400).json({ status: "error", error: error });
   }
 };
+
+export const navcan = async (_req: Request, res: Response) => {
+  try {
+    // base url for all navcan images
+    const RESOURCE_URL = "https://plan.navcanada.ca/weather/images/";
+
+    // query to navcan api
+    const apiURL =
+      "https://plan.navcanada.ca/weather/api/alpha/?site=CZVR&site=CZEG&site=CZWG&site=CZYZ&site=CZUL&site=CZQM&site=CZQX&image=GFA/CLDWX&image=GFA/TURBC&image=LGF&image=TURBULENCE&image=SIG_WX//MID_LEVEL/*";
+
+    const ncAPIData: NavCanResponse = await axios.get(apiURL).then((imageList) => imageList.data);
+
+    const rawList = ncAPIData.data.map((region) => JSON.parse(region.text) as NavCanImageList);
+
+    type GFAList = {
+      cldwx?: string[];
+      turbc?: string[];
+    };
+
+    let output: { [key: string]: GFAList | string[] } = {};
+
+    rawList.forEach((item) => {
+      switch (item.product) {
+        case "GFA":
+          // the gfa was already in the list so we update it with the newest instance of the data for the sub_product we have encountered
+          if (Object.keys(output).includes(item.geography)) {
+            Object.assign(output[item.geography], {
+              [item.sub_product]: item.frame_lists[2].frames.map(
+                (f) => `${RESOURCE_URL}${f.images[f.images.length - 1].id}.image`
+              ),
+            });
+          } else {
+            // gfa was not yet added to the list so we add the first instance of it, including its sub_product
+            Object.assign(output, {
+              [item.geography]: {
+                [item.sub_product]: item.frame_lists[2].frames.map(
+                  (f) => `${RESOURCE_URL}${f.images[f.images.length - 1].id}.image`
+                ),
+              },
+            });
+          }
+          break;
+        case "SIG_WX":
+          console.log(item.geography, item.sub_geography);
+          break;
+        case "TURBULENCE":
+          console.log(item.product, item.geography);
+          break;
+        case "LGF":
+          console.log(item.geography);
+          break;
+      }
+    });
+
+    res.status(200).json(output);
+  } catch (error) {
+    res.status(400).json({ status: "error", error: error });
+  }
+};
