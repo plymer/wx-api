@@ -460,13 +460,47 @@ export const navcan = async (_req: Request, res: Response) => {
           }
           break;
         case "SIG_WX":
-          console.log(item.geography, item.sub_geography);
+          if (Object.keys(output).includes("SIGWX")) {
+            Object.assign(output["SIGWX"], {
+              [item.sub_geography]: item.frame_lists[0].frames.map(
+                (f) => `${RESOURCE_URL}${f.images[f.images.length - 1].id}.image`
+              ),
+            });
+          } else {
+            // sigwx chart was not yet added to the list so we add the first instance of it, including its sub_geography
+            Object.assign(output, {
+              ["SIGWX"]: {
+                [item.sub_geography]: item.frame_lists[0].frames.map(
+                  (f) => `${RESOURCE_URL}${f.images[f.images.length - 1].id}.image`
+                ),
+              },
+            });
+          }
           break;
         case "TURBULENCE":
-          console.log(item.product, item.geography);
+          if (Object.keys(output).includes("HLT")) {
+            Object.assign(output["HLT"], {
+              [item.geography]: item.frame_lists[0].frames.map(
+                (f) => `${RESOURCE_URL}${f.images[f.images.length - 1].id}.image`
+              ),
+            });
+          } else {
+            Object.assign(output, {
+              ["HLT"]: {
+                [item.geography]: item.frame_lists[0].frames.map(
+                  (f) => `${RESOURCE_URL}${f.images[f.images.length - 1].id}.image`
+                ),
+              },
+            });
+          }
           break;
         case "LGF":
-          console.log(item.geography);
+          // each lgf region will only appear in the navcan api output once
+          Object.assign(output, {
+            [item.geography]: item.frame_lists[0].frames.map(
+              (f) => `${RESOURCE_URL}${f.images[f.images.length - 1].id}.image`
+            ),
+          });
           break;
       }
     });
